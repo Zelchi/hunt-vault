@@ -181,7 +181,7 @@ const PreviewSection = (props: PreviewSectionProps) => {
 export default (props: HuntImporterProps) => {
 	return (
 		<Card>
-			<SectionTitle>Importar Hunt Analyser</SectionTitle>
+			<SectionTitle>Importar Analyser</SectionTitle>
 			<ClipboardButton type="button" onClick={props.onReadClipboard} disabled={props.readingClipboard}>
 				{props.readingClipboard ? "Lendo clipboard..." : "Colar do clipboard"}
 			</ClipboardButton>
