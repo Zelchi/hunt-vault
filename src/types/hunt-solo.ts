@@ -1,19 +1,8 @@
-export type HuntRecord = {
-	id: string;
-	createdAt: string;
-	rawText: string;
-};
-
-export type View = "import" | "visualize";
+import type { HuntMetric } from "@/types/hunt-common";
 
 export type HuntListItem = {
 	quantity: string;
 	name: string;
-};
-
-export type HuntMetric = {
-	label: string;
-	value: string;
 };
 
 export type ParsedHuntSolo = {

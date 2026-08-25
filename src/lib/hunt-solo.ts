@@ -1,5 +1,6 @@
 import { normalizeLabel } from "@/lib/hunt-detector";
-import type { HuntListItem, HuntMetric, HuntSoloParseResult, ParsedHuntSolo } from "@/types/hunt-solo";
+import type { HuntMetric } from "@/types/hunt-common";
+import type { HuntListItem, HuntSoloParseResult, ParsedHuntSolo } from "@/types/hunt-solo";
 
 const knownMetricLabels = new Set([
 	"raw xp gain",

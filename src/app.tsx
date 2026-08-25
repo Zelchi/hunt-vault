@@ -5,7 +5,7 @@ import { database } from "@/lib/database";
 import { detectHuntReportType } from "@/lib/hunt-detector";
 import { validateHuntPartyReport } from "@/lib/hunt-party";
 import { validateHuntSoloReport } from "@/lib/hunt-solo";
-import type { HuntRecord, View } from "@/types/hunt-solo";
+import type { HuntRecord, View } from "@/types/hunt-common";
 
 const AppShell = lazy(() => import("@/components/AppShell"));
 const HuntImporter = lazy(() => import("@/components/HuntImporter"));

@@ -1,19 +1,16 @@
-export type PartyMetric = {
-	label: string;
-	value: string;
-};
+import type { HuntMetric } from "@/types/hunt-common";
 
 export type PartyMember = {
 	name: string;
 	isLeader: boolean;
-	metrics: PartyMetric[];
+	metrics: HuntMetric[];
 };
 
 export type ParsedHuntParty = {
 	sessionData: string;
 	session: string;
 	lootType: string;
-	metrics: PartyMetric[];
+	metrics: HuntMetric[];
 	members: PartyMember[];
 };
 

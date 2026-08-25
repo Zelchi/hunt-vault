@@ -1,9 +1,10 @@
 import { normalizeLabel } from "@/lib/hunt-detector";
-import type { HuntPartyParseResult, ParsedHuntParty, PartyMember, PartyMetric } from "@/types/hunt-party";
+import type { HuntMetric } from "@/types/hunt-common";
+import type { HuntPartyParseResult, ParsedHuntParty, PartyMember } from "@/types/hunt-party";
 
-const knownPartyMetricLabels = new Set(["loot", "supplies", "balance", "damage", "healing"]);
+const knownHuntMetricLabels = new Set(["loot", "supplies", "balance", "damage", "healing"]);
 
-const parseMetric = (line: string): PartyMetric | null => {
+const parseMetric = (line: string): HuntMetric | null => {
 	const match = line.match(/^([^:]+):\s*(.+)$/);
 
 	if (!match) {
@@ -21,7 +22,7 @@ const isNumericValue = (value: string) => {
 };
 
 const parseHuntPartyReport = (rawText: string): ParsedHuntParty => {
-	const metrics: PartyMetric[] = [];
+	const metrics: HuntMetric[] = [];
 	const members: PartyMember[] = [];
 	let sessionData = "";
 	let session = "";
@@ -102,7 +103,7 @@ const validateHuntPartyReport = (rawText: string): HuntPartyParseResult => {
 	const errors: string[] = [];
 	const lines = rawText.split(/\r?\n/).map((line) => line.trim());
 	const knownMetrics = parsed.metrics.filter((metric) => {
-		return knownPartyMetricLabels.has(normalizeLabel(metric.label));
+		return knownHuntMetricLabels.has(normalizeLabel(metric.label));
 	});
 	const membersWithMetrics = parsed.members.filter((member) => {
 		return member.metrics.length > 0;

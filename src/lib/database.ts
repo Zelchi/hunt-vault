@@ -1,6 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
-import type { HuntRecord } from "@/types/hunt-solo";
+import type { HuntRecord } from "@/types/hunt-common";
 
 class HuntVaultDatabase extends Dexie {
 	hunts!: Table<HuntRecord, string>;
