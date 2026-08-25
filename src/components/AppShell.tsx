@@ -212,18 +212,10 @@ export default (props: AppShellProps) => {
 					Hunt Vault
 				</Brand>
 				<Nav aria-label="Navegação principal">
-					<NavButton
-						data-active={props.view === "visualize"}
-						type="button"
-						onClick={() => props.onViewChange("visualize")}
-					>
+					<NavButton data-active={props.view === "visualize"} type="button" onClick={() => props.onViewChange("visualize")}>
 						Visualizar
 					</NavButton>
-					<NavButton
-						data-active={props.view === "import"}
-						type="button"
-						onClick={() => props.onViewChange("import")}
-					>
+					<NavButton data-active={props.view === "import"} type="button" onClick={() => props.onViewChange("import")}>
 						Importar
 					</NavButton>
 				</Nav>

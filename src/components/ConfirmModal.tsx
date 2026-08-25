@@ -147,35 +147,18 @@ export default (props: ConfirmModalProps) => {
 	return (
 		<Show when={props.open}>
 			<Backdrop onClick={handleBackdropClick}>
-				<Dialog
-					role="dialog"
-					aria-modal="true"
-					aria-labelledby="confirm-modal-title"
-					aria-describedby="confirm-modal-message"
-				>
+				<Dialog role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message">
 					<ModalMark>
 						<WarningIcon size={25} />
 					</ModalMark>
 					<Title id="confirm-modal-title">{props.title}</Title>
-					<Message id="confirm-modal-message">
-						{props.message}
-					</Message>
+					<Message id="confirm-modal-message">{props.message}</Message>
 					<Actions>
-						<CancelButton
-							type="button"
-							onClick={props.onCancel}
-							disabled={props.confirming}
-						>
+						<CancelButton type="button" onClick={props.onCancel} disabled={props.confirming}>
 							Cancelar
 						</CancelButton>
-						<ConfirmButton
-							type="button"
-							onClick={props.onConfirm}
-							disabled={props.confirming}
-						>
-							{props.confirming
-								? "Excluindo..."
-								: "Excluir caçada"}
+						<ConfirmButton type="button" onClick={props.onConfirm} disabled={props.confirming}>
+							{props.confirming ? "Excluindo..." : "Excluir caçada"}
 						</ConfirmButton>
 					</Actions>
 				</Dialog>

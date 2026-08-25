@@ -23,10 +23,7 @@ export default () => {
 		setLoadingHistory(true);
 
 		try {
-			const records = await database.hunts
-				.orderBy("createdAt")
-				.reverse()
-				.toArray();
+			const records = await database.hunts.orderBy("createdAt").reverse().toArray();
 			setHistory(records);
 			setCurrentIndex(0);
 		} catch {
@@ -64,9 +61,7 @@ export default () => {
 
 			if (validation.errors.length > 0) {
 				setClipboardText("");
-				toast.error(
-					`Formato não reconhecido: ${validation.errors[0]}.`,
-				);
+				toast.error(`Formato não reconhecido: ${validation.errors[0]}.`);
 				return;
 			}
 
@@ -75,9 +70,7 @@ export default () => {
 				`Hunt Analyser reconhecido: ${validation.parsed.metrics.length} métricas, ${validation.parsed.monsters.length} tipos de monstros e ${validation.parsed.lootedItems.length} tipos de itens.`,
 			);
 		} catch {
-			toast.error(
-				"Não foi possível acessar o clipboard. Autorize o acesso e tente novamente.",
-			);
+			toast.error("Não foi possível acessar o clipboard. Autorize o acesso e tente novamente.");
 		} finally {
 			setReadingClipboard(false);
 		}
@@ -126,9 +119,7 @@ export default () => {
 				throw new Error("O registro ainda existe no IndexedDB.");
 			}
 
-			const remainingRecords = records.filter(
-				(record) => record.id !== id,
-			);
+			const remainingRecords = records.filter((record) => record.id !== id);
 			setHistory(remainingRecords);
 			setCurrentIndex((index) => {
 				if (remainingRecords.length === 0) {
@@ -148,25 +139,20 @@ export default () => {
 			setDeleting(false);
 		}
 	};
+
 	const showPreviousHunt = () => {
-		setCurrentIndex((index) =>
-			history().length === 0
-				? 0
-				: (index - 1 + history().length) % history().length,
-		);
+		setCurrentIndex((index) => {
+			return history().length === 0 ? 0 : (index - 1 + history().length) % history().length;
+		});
 	};
 
 	const showNextHunt = () => {
-		setCurrentIndex((index) =>
-			history().length === 0 ? 0 : (index + 1) % history().length,
-		);
+		setCurrentIndex((index) => (history().length === 0 ? 0 : (index + 1) % history().length));
 	};
 
 	return (
 		<MetaProvider>
-			<Title>
-				{view() === "import" ? "Importar" : "Visualizar"} | HuntVault
-			</Title>
+			<Title>{view() === "import" ? "Importar" : "Visualizar"} | HuntVault</Title>
 			<Toaster position="bottom-right" />
 			<AppShell view={view()} onViewChange={handleViewChange}>
 				{view() === "import" ? (

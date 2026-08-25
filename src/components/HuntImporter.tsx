@@ -1,9 +1,6 @@
 import { onCleanup, onMount, Show } from "solid-js";
 import { styled } from "solid-styled-components";
-import type {
-	HuntImporterProps,
-	PreviewSectionProps,
-} from "@/types/components";
+import type { HuntImporterProps, PreviewSectionProps } from "@/types/components";
 
 const Card = styled("section")`
 	width: 100%;
@@ -185,30 +182,14 @@ export default (props: HuntImporterProps) => {
 	return (
 		<Card>
 			<SectionTitle>Importar Hunt Analyser</SectionTitle>
-			<ClipboardButton
-				type="button"
-				onClick={props.onReadClipboard}
-				disabled={props.readingClipboard}
-			>
-				{props.readingClipboard
-					? "Lendo clipboard..."
-					: "Colar do clipboard"}
+			<ClipboardButton type="button" onClick={props.onReadClipboard} disabled={props.readingClipboard}>
+				{props.readingClipboard ? "Lendo clipboard..." : "Colar do clipboard"}
 			</ClipboardButton>
 			<Show when={props.clipboardText}>
 				<PreviewSection>
-					<PreviewLabel for="hunt-analyser">
-						Conteúdo capturado
-					</PreviewLabel>
-					<ClipboardPreview
-						id="hunt-analyser"
-						value={props.clipboardText}
-						readonly
-					/>
-					<SaveButton
-						type="button"
-						onClick={props.onSave}
-						disabled={props.saving}
-					>
+					<PreviewLabel for="hunt-analyser">Conteúdo capturado</PreviewLabel>
+					<ClipboardPreview id="hunt-analyser" value={props.clipboardText} readonly />
+					<SaveButton type="button" onClick={props.onSave} disabled={props.saving}>
 						{props.saving ? "Salvando..." : "Salvar resultado"}
 					</SaveButton>
 				</PreviewSection>

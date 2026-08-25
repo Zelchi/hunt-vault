@@ -1,9 +1,4 @@
-import type {
-	HuntListItem,
-	HuntMetric,
-	HuntParseResult,
-	ParsedHunt,
-} from "@/types/hunt";
+import type { HuntListItem, HuntMetric, HuntParseResult, ParsedHunt } from "@/types/hunt";
 
 const knownMetricLabels = new Set([
 	"raw xp gain",
@@ -147,14 +142,8 @@ const validateHuntReport = (rawText: string): HuntParseResult => {
 		errors.push("não encontrei a seção Looted Items");
 	}
 
-	if (
-		killedMonstersIndex !== -1 &&
-		lootedItemsIndex !== -1 &&
-		lootedItemsIndex < killedMonstersIndex
-	) {
-		errors.push(
-			"as seções Killed Monsters e Looted Items estão fora de ordem",
-		);
+	if (killedMonstersIndex !== -1 && lootedItemsIndex !== -1 && lootedItemsIndex < killedMonstersIndex) {
+		errors.push("as seções Killed Monsters e Looted Items estão fora de ordem");
 	}
 
 	if (knownMetrics < 2) {

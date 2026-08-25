@@ -1,10 +1,6 @@
 import { createMemo, createSignal, For, lazy, Show } from "solid-js";
 import { styled } from "solid-styled-components";
-import {
-	ChevronLeftIcon,
-	ChevronRightIcon,
-	ScrollIcon,
-} from "@/components/Icons";
+import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/Icons";
 import { formatCreatedAt, parseHuntReport } from "@/lib/hunt-parser";
 import type { HuntViewerProps } from "@/types/components";
 
@@ -377,9 +373,7 @@ const LoadingState = styled("div")`
 `;
 
 export default (props: HuntViewerProps) => {
-	const [pendingDeleteId, setPendingDeleteId] = createSignal<string | null>(
-		null,
-	);
+	const [pendingDeleteId, setPendingDeleteId] = createSignal<string | null>(null);
 
 	const activeHunt = createMemo(() => {
 		const record = props.history[props.currentIndex];
@@ -421,23 +415,15 @@ export default (props: HuntViewerProps) => {
 					when={!props.loading && props.history.length > 0}
 					fallback={
 						props.loading ? (
-							<LoadingState>
-								Carregando suas caçadas...
-							</LoadingState>
+							<LoadingState>Carregando suas caçadas...</LoadingState>
 						) : (
 							<EmptyState>
 								<EmptyIcon>
 									<ScrollIcon size={28} />
 								</EmptyIcon>
 								<strong>Nenhuma caçada salva ainda.</strong>
-								<p>
-									Importe o primeiro Hunt Analyser para
-									começar seu histórico.
-								</p>
-								<EmptyAction
-									type="button"
-									onClick={props.onImport}
-								>
+								<p>Importe o primeiro Hunt Analyser para começar seu histórico.</p>
+								<EmptyAction type="button" onClick={props.onImport}>
 									Ir para importar
 								</EmptyAction>
 							</EmptyState>
@@ -449,26 +435,16 @@ export default (props: HuntViewerProps) => {
 							<>
 								<ViewerHeader>
 									<div>
-										<ViewerEyebrow>
-											Histórico de caçadas
-										</ViewerEyebrow>
-										<ViewerTitle>
-											{active().parsed.session ||
-												"Caçada sem duração informada"}
-										</ViewerTitle>
+										<ViewerEyebrow>Histórico de caçadas</ViewerEyebrow>
+										<ViewerTitle>{active().parsed.session || "Caçada sem duração informada"}</ViewerTitle>
 									</div>
 									<ViewerActions>
 										<ViewerCounter>
-											{props.currentIndex + 1} de{" "}
-											{props.history.length}
+											{props.currentIndex + 1} de {props.history.length}
 										</ViewerCounter>
 										<DeleteButton
 											type="button"
-											onClick={() =>
-												requestDelete(
-													active().record.id,
-												)
-											}
+											onClick={() => requestDelete(active().record.id)}
 											aria-label="Excluir esta caçada"
 										>
 											Excluir
@@ -477,52 +453,29 @@ export default (props: HuntViewerProps) => {
 								</ViewerHeader>
 
 								<Carousel>
-									<CarouselButton
-										type="button"
-										onClick={props.onPrevious}
-										aria-label="Visualizar caçada anterior"
-									>
+									<CarouselButton type="button" onClick={props.onPrevious} aria-label="Visualizar caçada anterior">
 										<ChevronLeftIcon />
 									</CarouselButton>
 									<CarouselTrack>
-										<CarouselHint>
-											Use as setas para navegar entre suas
-											caçadas salvas
-										</CarouselHint>
+										<CarouselHint>Use as setas para navegar entre suas caçadas salvas</CarouselHint>
 									</CarouselTrack>
-									<CarouselButton
-										type="button"
-										onClick={props.onNext}
-										aria-label="Visualizar próxima caçada"
-									>
+									<CarouselButton type="button" onClick={props.onNext} aria-label="Visualizar próxima caçada">
 										<ChevronRightIcon />
 									</CarouselButton>
 								</Carousel>
 
 								<SessionBanner>
 									<div>
-										<SessionLabel>
-											Período da sessão
-										</SessionLabel>
-										<SessionValue>
-											{active().parsed.sessionData ||
-												"Não informado"}
-										</SessionValue>
+										<SessionLabel>Período da sessão</SessionLabel>
+										<SessionValue>{active().parsed.sessionData || "Não informado"}</SessionValue>
 									</div>
 									<div>
 										<SessionLabel>Duração</SessionLabel>
-										<SessionValue>
-											{active().parsed.session ||
-												"Não informado"}
-										</SessionValue>
+										<SessionValue>{active().parsed.session || "Não informado"}</SessionValue>
 									</div>
 									<SessionSaved>
 										<SessionLabel>Salva em</SessionLabel>
-										<SessionValue>
-											{formatCreatedAt(
-												active().record.createdAt,
-											)}
-										</SessionValue>
+										<SessionValue>{formatCreatedAt(active().record.createdAt)}</SessionValue>
 									</SessionSaved>
 								</SessionBanner>
 
@@ -530,12 +483,8 @@ export default (props: HuntViewerProps) => {
 									<For each={active().parsed.metrics}>
 										{(metric) => (
 											<MetricCard>
-												<MetricLabel>
-													{metric.label}
-												</MetricLabel>
-												<MetricValue>
-													{metric.value}
-												</MetricValue>
+												<MetricLabel>{metric.label}</MetricLabel>
+												<MetricValue>{metric.value}</MetricValue>
 											</MetricCard>
 										)}
 									</For>
@@ -544,42 +493,19 @@ export default (props: HuntViewerProps) => {
 								<ListsGrid>
 									<DataPanel>
 										<PanelHeader>
-											<PanelTitle>
-												Monstros mortos
-											</PanelTitle>
-											<PanelCount>
-												{
-													active().parsed.monsters
-														.length
-												}{" "}
-												tipos
-											</PanelCount>
+											<PanelTitle>Monstros mortos</PanelTitle>
+											<PanelCount>{active().parsed.monsters.length} tipos</PanelCount>
 										</PanelHeader>
 										<Show
-											when={
-												active().parsed.monsters
-													.length > 0
-											}
-											fallback={
-												<PanelEmpty>
-													Nenhum monstro encontrado.
-												</PanelEmpty>
-											}
+											when={active().parsed.monsters.length > 0}
+											fallback={<PanelEmpty>Nenhum monstro encontrado.</PanelEmpty>}
 										>
 											<ItemList>
-												<For
-													each={
-														active().parsed.monsters
-													}
-												>
+												<For each={active().parsed.monsters}>
 													{(item) => (
 														<ItemRow>
-															<ItemQuantity>
-																{item.quantity}x
-															</ItemQuantity>
-															<ItemName>
-																{item.name}
-															</ItemName>
+															<ItemQuantity>{item.quantity}x</ItemQuantity>
+															<ItemName>{item.name}</ItemName>
 														</ItemRow>
 													)}
 												</For>
@@ -589,43 +515,19 @@ export default (props: HuntViewerProps) => {
 
 									<DataPanel>
 										<PanelHeader>
-											<PanelTitle>
-												Itens coletados
-											</PanelTitle>
-											<PanelCount>
-												{
-													active().parsed.lootedItems
-														.length
-												}{" "}
-												tipos
-											</PanelCount>
+											<PanelTitle>Itens coletados</PanelTitle>
+											<PanelCount>{active().parsed.lootedItems.length} tipos</PanelCount>
 										</PanelHeader>
 										<Show
-											when={
-												active().parsed.lootedItems
-													.length > 0
-											}
-											fallback={
-												<PanelEmpty>
-													Nenhum item encontrado.
-												</PanelEmpty>
-											}
+											when={active().parsed.lootedItems.length > 0}
+											fallback={<PanelEmpty>Nenhum item encontrado.</PanelEmpty>}
 										>
 											<ItemList>
-												<For
-													each={
-														active().parsed
-															.lootedItems
-													}
-												>
+												<For each={active().parsed.lootedItems}>
 													{(item) => (
 														<ItemRow>
-															<ItemQuantity>
-																{item.quantity}x
-															</ItemQuantity>
-															<ItemName>
-																{item.name}
-															</ItemName>
+															<ItemQuantity>{item.quantity}x</ItemQuantity>
+															<ItemName>{item.name}</ItemName>
 														</ItemRow>
 													)}
 												</For>
@@ -635,9 +537,7 @@ export default (props: HuntViewerProps) => {
 								</ListsGrid>
 
 								<RawDetails>
-									<summary>
-										Ver texto original da caçada
-									</summary>
+									<summary>Ver texto original da caçada</summary>
 									<RawText>{active().record.rawText}</RawText>
 								</RawDetails>
 							</>
