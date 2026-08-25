@@ -1,4 +1,5 @@
 import type { HuntListItem, HuntMetric, HuntParseResult, ParsedHunt } from "@/types/hunt";
+import { normalizeLabel } from "@/lib/hunt-detector";
 
 const knownMetricLabels = new Set([
 	"raw xp gain",
@@ -13,8 +14,6 @@ const knownMetricLabels = new Set([
 	"healing",
 	"healing/h",
 ]);
-
-const normalizeLabel = (label: string) => label.trim().toLowerCase();
 
 const parseListItem = (line: string): HuntListItem | null => {
 	const match = line.trim().match(/^(\d[\d.,]*)x\s+(.+)$/i);

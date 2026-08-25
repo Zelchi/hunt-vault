@@ -2,7 +2,9 @@ import { MetaProvider, Title } from "@solidjs/meta";
 import { createSignal, lazy } from "solid-js";
 import { Toaster, toast } from "solid-toast";
 import { database } from "@/lib/database";
+import { detectHuntReportType } from "@/lib/hunt-detector";
 import { validateHuntReport } from "@/lib/hunt-parser";
+import { validateHuntPartyReport } from "@/lib/hunt-party";
 import type { HuntRecord, View } from "@/types/hunt";
 
 const AppShell = lazy(() => import("@/components/AppShell"));
@@ -57,18 +59,42 @@ export default () => {
 				return;
 			}
 
-			const validation = validateHuntReport(text);
+			const reportType = detectHuntReportType(text);
 
-			if (validation.errors.length > 0) {
-				setClipboardText("");
-				toast.error(`Formato não reconhecido: ${validation.errors[0]}.`);
+			if (reportType === "party") {
+				const validation = validateHuntPartyReport(text);
+
+				if (validation.errors.length > 0) {
+					setClipboardText("");
+					toast.error(`Formato não reconhecido: ${validation.errors[0]}.`);
+					return;
+				}
+
+				setClipboardText(text);
+				toast.success(
+					`Party Hunt reconhecido: ${validation.parsed.members.length} membros e ${validation.parsed.metrics.length} métricas gerais.`,
+				);
 				return;
 			}
 
-			setClipboardText(text);
-			toast.success(
-				`Hunt Analyser reconhecido: ${validation.parsed.metrics.length} métricas, ${validation.parsed.monsters.length} tipos de monstros e ${validation.parsed.lootedItems.length} tipos de itens.`,
-			);
+			if (reportType === "individual") {
+				const validation = validateHuntReport(text);
+
+				if (validation.errors.length > 0) {
+					setClipboardText("");
+					toast.error(`Formato não reconhecido: ${validation.errors[0]}.`);
+					return;
+				}
+
+				setClipboardText(text);
+				toast.success(
+					`Hunt Analyser reconhecido: ${validation.parsed.metrics.length} métricas, ${validation.parsed.monsters.length} tipos de monstros e ${validation.parsed.lootedItems.length} tipos de itens.`,
+				);
+				return;
+			}
+
+			setClipboardText("");
+			toast.error("Tipo de relatório não reconhecido.");
 		} catch {
 			toast.error("Não foi possível acessar o clipboard. Autorize o acesso e tente novamente.");
 		} finally {

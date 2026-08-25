@@ -1,8 +1,7 @@
 import type { HuntPartyParseResult, ParsedHuntParty, PartyMember, PartyMetric } from "@/types/hunt-party";
+import { normalizeLabel } from "@/lib/hunt-detector";
 
 const knownPartyMetricLabels = new Set(["loot", "supplies", "balance", "damage", "healing"]);
-
-const normalizeLabel = (label: string) => label.trim().toLowerCase();
 
 const parseMetric = (line: string): PartyMetric | null => {
 	const match = line.match(/^([^:]+):\s*(.+)$/);
