@@ -1,4 +1,4 @@
-export type HuntReportType = "party" | "individual" | "unknown";
+export type HuntReportType = "party" | "solo" | "unknown";
 
 const knownPartyMetricLabels = new Set(["loot", "supplies", "balance", "damage", "healing"]);
 
@@ -15,16 +15,16 @@ const detectHuntReportType = (rawText: string): HuntReportType => {
 
 		return knownPartyMetricLabels.has(normalizeLabel(line.split(":")[0]));
 	});
-	const hasIndividualSection = lines.some((line) => {
+	const hasSoloSection = lines.some((line) => {
 		return /^Killed Monsters:\s*$|^Looted Items:\s*$/i.test(line);
 	});
 
-	if (hasLootType || hasLeader || (hasPartyMetric && !hasIndividualSection)) {
+	if (hasLootType || hasLeader || (hasPartyMetric && !hasSoloSection)) {
 		return "party";
 	}
 
-	if (hasIndividualSection) {
-		return "individual";
+	if (hasSoloSection) {
+		return "solo";
 	}
 
 	return "unknown";

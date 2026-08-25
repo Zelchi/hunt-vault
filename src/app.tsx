@@ -77,7 +77,7 @@ export default () => {
 				return;
 			}
 
-			if (reportType === "individual") {
+			if (reportType === "solo") {
 				const validation = validateHuntSoloReport(text);
 
 				if (validation.errors.length > 0) {

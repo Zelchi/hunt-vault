@@ -484,7 +484,7 @@ export default (props: HuntViewerProps) => {
 	const [selectedIndex, setSelectedIndex] = createSignal(0);
 
 	const filteredHistory = createMemo(() => {
-		const reportType = activeCategory() === "party" ? "party" : "individual";
+		const reportType = activeCategory() === "party" ? "party" : "solo";
 		return props.history.filter((record) => detectHuntReportType(record.rawText) === reportType);
 	});
 
@@ -495,9 +495,9 @@ export default (props: HuntViewerProps) => {
 
 		return record
 			? {
-				record,
-				parsed: parseHuntSoloReport(record.rawText),
-			}
+					record,
+					parsed: parseHuntSoloReport(record.rawText),
+				}
 			: null;
 	});
 
