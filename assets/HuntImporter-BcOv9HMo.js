@@ -1,4 +1,4 @@
-import{S as e,m as t,p as n,x as r}from"./index-B3H4Ryps.js";import{t as i}from"./src-CQI4vSmd.js";var a=i(`section`)`
+import{S as e,m as t,p as n,x as r}from"./index-QDngHg3G.js";import{t as i}from"./src-h1GnVE9h.js";var a=i(`section`)`
 	width: 100%;
 	max-width: 52rem;
 	padding: 2rem;

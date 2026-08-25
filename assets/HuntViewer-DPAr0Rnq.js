@@ -1,5 +1,5 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/ConfirmModal-CB0y_07O.js","assets/index-B3H4Ryps.js","assets/index-DZhVccg7.css","assets/src-CQI4vSmd.js","assets/Icons-BaBmXxSv.js"])))=>i.map(i=>d[i]);
-import{_ as e,a as t,c as n,d as r,f as i,i as ee,m as a,n as te,p as o,r as s,s as c,t as l,v as u,y as d}from"./index-B3H4Ryps.js";import{t as f}from"./src-CQI4vSmd.js";import{n as ne,r as re,t as ie}from"./Icons-BaBmXxSv.js";var p=r(`<strong>Nenhuma caçada salva ainda.`),m=r(`<p>Importe o primeiro Hunt Analyser para começar seu histórico.`),h=r(`<div>`),ae=r(`<summary>Ver texto original da caçada`),oe=d(()=>l(()=>import(`./ConfirmModal-CB0y_07O.js`),__vite__mapDeps([0,1,2,3,4]))),se=f(`section`)`
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/ConfirmModal-Glm7h19U.js","assets/index-QDngHg3G.js","assets/index-93IVRE-N.css","assets/src-h1GnVE9h.js","assets/Icons-DiymZe9l.js"])))=>i.map(i=>d[i]);
+import{_ as e,a as t,c as n,d as r,f as i,i as ee,m as a,n as te,p as o,r as s,s as c,t as l,v as u,y as d}from"./index-QDngHg3G.js";import{t as f}from"./src-h1GnVE9h.js";import{n as ne,r as re,t as ie}from"./Icons-DiymZe9l.js";var p=r(`<strong>Nenhuma caçada salva ainda.`),m=r(`<p>Importe o primeiro Hunt Analyser para começar seu histórico.`),h=r(`<div>`),ae=r(`<summary>Ver texto original da caçada`),oe=d(()=>l(()=>import(`./ConfirmModal-Glm7h19U.js`),__vite__mapDeps([0,1,2,3,4]))),se=f(`section`)`
 	width: 100%;
 	max-width: 74rem;
 	padding: 2rem;
