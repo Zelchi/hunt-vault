@@ -217,6 +217,9 @@ export default (props: AppShellProps) => {
 					<NavButton data-active={props.view === "visualize"} type="button" onClick={() => props.onViewChange("visualize")}>
 						Visualizar
 					</NavButton>
+					<NavButton data-active={props.view === "dashboard"} type="button" onClick={() => props.onViewChange("dashboard")}>
+						Dashboard
+					</NavButton>
 					<NavButton data-active={props.view === "import"} type="button" onClick={() => props.onViewChange("import")}>
 						Importar
 					</NavButton>

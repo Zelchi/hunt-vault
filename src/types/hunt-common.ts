@@ -9,4 +9,4 @@ export type HuntMetric = {
 	value: string;
 };
 
-export type View = "import" | "visualize";
+export type View = "import" | "visualize" | "dashboard";

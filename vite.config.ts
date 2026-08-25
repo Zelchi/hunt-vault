@@ -1,15 +1,13 @@
-import path from "node:path";
-
+import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
-
-const projectDirectory = import.meta.dirname;
+import path from "node:path";
 
 export default defineConfig({
-	plugins: [solid()],
+	plugins: [vanillaExtractPlugin(), solid()],
 	resolve: {
 		alias: {
-			"@": path.resolve(projectDirectory, "src"),
+			"@": path.resolve(import.meta.dirname, "src"),
 		},
 	},
 });

@@ -12,10 +12,12 @@
 	},
 	"dependencies": {
 		"@solidjs/meta": "^0.29.4",
+		"@vanilla-extract/css": "^1.21.2",
 		"dexie": "^4.4.5",
 		"solid-js": "^1.9.14",
 		"solid-styled-components": "^0.28.5",
 		"solid-toast": "^0.5.0",
+		"uplot": "^1.6.32",
 		"vite": "^8.0.0"
 	},
 	"engines": {
@@ -24,6 +26,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.10",
 		"@types/node": "^26.3.0",
+		"@vanilla-extract/vite-plugin": "^5.2.6",
 		"gh-pages": "^6.3.0",
 		"vite-plugin-solid": "^2.11.14"
 	}

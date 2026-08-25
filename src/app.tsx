@@ -59,7 +59,7 @@ export default () => {
 	const handleViewChange = (nextView: View) => {
 		setView(nextView);
 
-		if (nextView === "visualize") {
+		if (nextView === "visualize" || nextView === "dashboard") {
 			void loadHistory();
 		}
 	};
@@ -199,7 +199,7 @@ export default () => {
 
 	return (
 		<MetaProvider>
-			<Title>{view() === "import" ? "Importar" : "Visualizar"} | HuntVault</Title>
+			<Title>{view() === "import" ? "Importar" : view() === "dashboard" ? "Dashboard" : "Visualizar"} | HuntVault</Title>
 			<Toaster position="bottom-right" />
 			<AppShell view={view()} onViewChange={handleViewChange}>
 				{view() === "import" ? (
