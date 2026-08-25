@@ -506,9 +506,9 @@ export default (props: HuntViewerProps) => {
 
 		return record
 			? {
-					record,
-					parsed: parseHuntSoloReport(record.rawText),
-				}
+				record,
+				parsed: parseHuntSoloReport(record.rawText),
+			}
 			: null;
 	});
 
@@ -603,7 +603,7 @@ export default (props: HuntViewerProps) => {
 						Hunt Solo
 					</HuntTab>
 					<HuntTab data-active={activeCategory() === "party"} type="button" onClick={() => changeCategory("party")}>
-						Hunt em Party
+						Hunt Party
 					</HuntTab>
 				</HuntTabs>
 				<Show
