@@ -1,7 +1,9 @@
 import { createEffect, createSignal, onCleanup } from "solid-js";
 import { styled } from "solid-styled-components";
-import { SwordIcon } from "@/components/Icons";
+
 import type { AppShellProps } from "@/types/components";
+
+import { SwordIcon } from "@/components/Icons";
 
 const Page = styled("div")`
 	height: 100vh;

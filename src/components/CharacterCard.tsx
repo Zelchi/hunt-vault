@@ -1,4 +1,5 @@
 import { styled } from "solid-styled-components";
+
 import type { CharacterCardProps } from "@/types/character";
 
 const Card = styled("article")`

@@ -1,10 +1,15 @@
 import { createMemo, createSignal, For, lazy, Show } from "solid-js";
 import { styled } from "solid-styled-components";
-import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/Icons";
-import { detectHuntReportType } from "@/lib/hunt-detector";
-import { parseHuntPartyReport } from "@/lib/hunt-party";
+
+import { detectHuntReportType, normalizeLabel } from "@/lib/hunt-detector";
 import { formatCreatedAt, parseHuntSoloReport } from "@/lib/hunt-solo";
+import { parseHuntPartyReport } from "@/lib/hunt-party";
+
 import type { HuntViewerProps } from "@/types/components";
+import type { PartyMember } from "@/types/hunt-party";
+import type { HuntMetric } from "@/types/hunt-common";
+
+import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/Icons";
 
 const ConfirmModal = lazy(() => import("@/components/ConfirmModal"));
 
@@ -518,23 +523,34 @@ export default (props: HuntViewerProps) => {
 			return null;
 		}
 
-		const getTopMember = (label: string) => {
-			return (
-				party.members
-					.map((member) => {
-						const metric = member.metrics.find((item) => item.label.toLowerCase() === label);
-						const numericValue = metric?.value.replace(/,/g, "").replace(/\./g, "") ?? "0";
-						return { member, metric, numericValue: Number(numericValue) };
-					})
-					.filter((item) => item.metric)
-					.sort((a, b) => b.numericValue - a.numericValue)[0] ?? null
-			);
+		const getTopMember = (metricLabel: string, ascending: boolean) => {
+			const memberMetrics = party.members
+				.map((member) => {
+					const metric = member.metrics.find((m) => normalizeLabel(m.label) === normalizeLabel(metricLabel));
+					if (!metric) {
+						return null;
+					}
+					return { member, metric };
+				})
+				.filter((item): item is { member: PartyMember; metric: HuntMetric } => item !== null);
+
+			if (memberMetrics.length === 0) {
+				return null;
+			}
+
+			const sorted = [...memberMetrics].sort((a, b) => {
+				const aValue = parseFloat(a.metric.value.replace(/,/g, "").replace(/\./g, ""));
+				const bValue = parseFloat(b.metric.value.replace(/,/g, "").replace(/\./g, ""));
+				return ascending ? aValue - bValue : bValue - aValue;
+			});
+
+			return sorted[0] ?? null;
 		};
 
 		return {
-			supplies: getTopMember("supplies"),
-			damage: getTopMember("damage"),
-			healing: getTopMember("healing"),
+			supplies: getTopMember("supplies", true),
+			damage: getTopMember("damage", false),
+			healing: getTopMember("healing", false),
 		};
 	});
 

@@ -1,7 +1,9 @@
 import { Show } from "solid-js";
 import { styled } from "solid-styled-components";
-import { WarningIcon } from "@/components/Icons";
+
 import type { ConfirmModalProps } from "@/types/components";
+
+import { WarningIcon } from "@/components/Icons";
 
 const Backdrop = styled("div")`
 	position: fixed;

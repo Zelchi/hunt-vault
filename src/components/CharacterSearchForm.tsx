@@ -1,4 +1,5 @@
 import { styled } from "solid-styled-components";
+
 import type { CharacterSearchFormProps } from "@/types/character";
 
 const Form = styled("form")`

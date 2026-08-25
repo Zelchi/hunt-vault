@@ -1,4 +1,5 @@
 import { normalizeLabel } from "@/lib/hunt-detector";
+
 import type { HuntMetric } from "@/types/hunt-common";
 import type { HuntListItem, HuntSoloParseResult, ParsedHuntSolo } from "@/types/hunt-solo";
 
