@@ -501,9 +501,9 @@ export default (props: HuntViewerProps) => {
 
 		return record
 			? {
-				record,
-				parsed: parseHuntSoloReport(record.rawText),
-			}
+					record,
+					parsed: parseHuntSoloReport(record.rawText),
+				}
 			: null;
 	});
 

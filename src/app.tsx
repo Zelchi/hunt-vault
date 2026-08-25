@@ -1,5 +1,5 @@
 import { MetaProvider, Title } from "@solidjs/meta";
-import { createSignal, lazy } from "solid-js";
+import { createSignal, lazy, onCleanup, onMount } from "solid-js";
 import { Toaster, toast } from "solid-toast";
 import { database } from "@/lib/database";
 import { detectHuntReportType } from "@/lib/hunt-detector";
@@ -20,6 +20,27 @@ export default () => {
 	const [history, setHistory] = createSignal<HuntRecord[]>([]);
 	const [loadingHistory, setLoadingHistory] = createSignal(false);
 	const [currentIndex, setCurrentIndex] = createSignal(0);
+	const clickSound = new Audio("/click.mp3");
+
+	onMount(() => {
+		const handleButtonClick = (event: MouseEvent) => {
+			if (!(event.target instanceof Element) || !event.target.closest("button")) {
+				return;
+			}
+
+			clickSound.currentTime = 0;
+			clickSound.volume = 0.1;
+			void clickSound.play().catch(() => undefined);
+		};
+
+		document.addEventListener("click", handleButtonClick);
+
+		onCleanup(() => {
+			document.removeEventListener("click", handleButtonClick);
+			clickSound.pause();
+			clickSound.currentTime = 0;
+		});
+	});
 
 	const loadHistory = async () => {
 		setLoadingHistory(true);

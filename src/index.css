@@ -7,9 +7,25 @@
 
 * {
 	box-sizing: border-box;
+	cursor:
+		url("/normal.cur") 0 0,
+		auto;
 	scrollbar-color: #63836c #0a0e0c;
 	scrollbar-width: thin;
 	user-select: none;
+}
+
+button[class],
+a[class],
+[role="button"],
+summary,
+label,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+	cursor:
+		url("/link.cur") 0 0,
+		pointer;
 }
 
 *::-webkit-scrollbar {
