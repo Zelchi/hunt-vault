@@ -1,5 +1,5 @@
 import { normalizeLabel } from "@/lib/hunt-detector";
-import type { HuntListItem, HuntMetric, HuntParseResult, ParsedHunt } from "@/types/hunt";
+import type { HuntListItem, HuntMetric, HuntSoloParseResult, ParsedHuntSolo } from "@/types/hunt-solo";
 
 const knownMetricLabels = new Set([
 	"raw xp gain",
@@ -26,7 +26,7 @@ const parseListItem = (line: string): HuntListItem | null => {
 	};
 };
 
-const parseHuntReport = (rawText: string): ParsedHunt => {
+const parseHuntSoloReport = (rawText: string): ParsedHuntSolo => {
 	const metrics: HuntMetric[] = [];
 	const monsters: HuntListItem[] = [];
 	const lootedItems: HuntListItem[] = [];
@@ -99,8 +99,8 @@ const parseHuntReport = (rawText: string): ParsedHunt => {
 	};
 };
 
-const validateHuntReport = (rawText: string): HuntParseResult => {
-	const parsed = parseHuntReport(rawText);
+const validateHuntSoloReport = (rawText: string): HuntSoloParseResult => {
+	const parsed = parseHuntSoloReport(rawText);
 	const lines = rawText.split(/\r?\n/).map((line) => line.trim());
 	const errors: string[] = [];
 
@@ -166,4 +166,4 @@ const formatCreatedAt = (createdAt: string) => {
 	});
 };
 
-export { formatCreatedAt, parseHuntReport, validateHuntReport };
+export { formatCreatedAt, parseHuntSoloReport, validateHuntSoloReport };

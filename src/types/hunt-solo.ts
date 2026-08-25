@@ -16,7 +16,7 @@ export type HuntMetric = {
 	value: string;
 };
 
-export type ParsedHunt = {
+export type ParsedHuntSolo = {
 	sessionData: string;
 	session: string;
 	metrics: HuntMetric[];
@@ -24,7 +24,7 @@ export type ParsedHunt = {
 	lootedItems: HuntListItem[];
 };
 
-export type HuntParseResult = {
-	parsed: ParsedHunt;
+export type HuntSoloParseResult = {
+	parsed: ParsedHuntSolo;
 	errors: string[];
 };

@@ -3,9 +3,9 @@ import { createSignal, lazy } from "solid-js";
 import { Toaster, toast } from "solid-toast";
 import { database } from "@/lib/database";
 import { detectHuntReportType } from "@/lib/hunt-detector";
-import { validateHuntReport } from "@/lib/hunt-parser";
 import { validateHuntPartyReport } from "@/lib/hunt-party";
-import type { HuntRecord, View } from "@/types/hunt";
+import { validateHuntSoloReport } from "@/lib/hunt-solo";
+import type { HuntRecord, View } from "@/types/hunt-solo";
 
 const AppShell = lazy(() => import("@/components/AppShell"));
 const HuntImporter = lazy(() => import("@/components/HuntImporter"));
@@ -78,7 +78,7 @@ export default () => {
 			}
 
 			if (reportType === "individual") {
-				const validation = validateHuntReport(text);
+				const validation = validateHuntSoloReport(text);
 
 				if (validation.errors.length > 0) {
 					setClipboardText("");

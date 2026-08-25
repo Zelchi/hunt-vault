@@ -2,8 +2,8 @@ import { createMemo, createSignal, For, lazy, Show } from "solid-js";
 import { styled } from "solid-styled-components";
 import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/Icons";
 import { detectHuntReportType } from "@/lib/hunt-detector";
-import { formatCreatedAt, parseHuntReport } from "@/lib/hunt-parser";
 import { parseHuntPartyReport } from "@/lib/hunt-party";
+import { formatCreatedAt, parseHuntSoloReport } from "@/lib/hunt-solo";
 import type { HuntViewerProps } from "@/types/components";
 
 const ConfirmModal = lazy(() => import("@/components/ConfirmModal"));
@@ -154,16 +154,6 @@ const ViewerHeader = styled("div")`
 	}
 `;
 
-const ViewerEyebrow = styled("span")`
-	display: block;
-	margin-bottom: 0.5rem;
-	color: #d9a441;
-	font-size: 0.75rem;
-	font-weight: 700;
-	letter-spacing: 0.12em;
-	text-transform: uppercase;
-`;
-
 const ViewerTitle = styled("h1")`
 	margin: 0;
 	color: #e8b84e;
@@ -254,12 +244,6 @@ const CarouselTrack = styled("div")`
 	align-items: center;
 	gap: 0.5rem;
 	min-width: 0;
-`;
-
-const CarouselHint = styled("span")`
-	color: #777b88;
-	font-size: 0.75rem;
-	text-align: center;
 `;
 
 const SessionBanner = styled("div")`
@@ -512,7 +496,7 @@ export default (props: HuntViewerProps) => {
 		return record
 			? {
 				record,
-				parsed: parseHuntReport(record.rawText),
+				parsed: parseHuntSoloReport(record.rawText),
 			}
 			: null;
 	});
