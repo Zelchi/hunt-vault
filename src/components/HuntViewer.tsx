@@ -246,6 +246,12 @@ const CarouselTrack = styled("div")`
 	min-width: 0;
 `;
 
+const CarouselHint = styled("span")`
+	color: #777b88;
+	font-size: 0.75rem;
+	text-align: center;
+`;
+
 const SessionBanner = styled("div")`
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(8rem, auto) minmax(10rem, auto);
@@ -495,9 +501,9 @@ export default (props: HuntViewerProps) => {
 
 		return record
 			? {
-					record,
-					parsed: parseHuntSoloReport(record.rawText),
-				}
+				record,
+				parsed: parseHuntSoloReport(record.rawText),
+			}
 			: null;
 	});
 
@@ -628,7 +634,9 @@ export default (props: HuntViewerProps) => {
 									<CarouselButton type="button" onClick={showPrevious} aria-label="Visualizar caçada anterior">
 										<ChevronLeftIcon />
 									</CarouselButton>
-									<CarouselTrack />
+									<CarouselTrack>
+										<CarouselHint>Use as setas para navegar entre as caçadas salvas.</CarouselHint>
+									</CarouselTrack>
 									<CarouselButton type="button" onClick={showNext} aria-label="Visualizar próxima caçada">
 										<ChevronRightIcon />
 									</CarouselButton>
@@ -775,12 +783,12 @@ export default (props: HuntViewerProps) => {
 											</Show>
 										</DataPanel>
 									</ListsGrid>
-
-									<RawDetails>
-										<summary>Ver texto original da caçada</summary>
-										<RawText>{active().record.rawText}</RawText>
-									</RawDetails>
 								</Show>
+
+								<RawDetails>
+									<summary>Ver texto original da caçada</summary>
+									<RawText>{active().record.rawText}</RawText>
+								</RawDetails>
 							</>
 						)}
 					</Show>
