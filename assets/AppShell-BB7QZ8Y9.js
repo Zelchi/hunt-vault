@@ -1,4 +1,4 @@
-import{f as e,g as t,m as n,y as r}from"./index-H4DeUj6V.js";import{t as i}from"./src-CzHbCJc-.js";import{i as a}from"./Icons-Bzxb0ISR.js";var o=i(`div`)`
+import{g as e,m as t,v as n,x as r}from"./index-B3H4Ryps.js";import{t as i}from"./src-CQI4vSmd.js";import{i as a}from"./Icons-BaBmXxSv.js";var o=i(`div`)`
 	height: 100vh;
 	min-height: 100dvh;
 	display: flex;
@@ -120,4 +120,4 @@ import{f as e,g as t,m as n,y as r}from"./index-H4DeUj6V.js";import{t as i}from"
 	overflow-x: hidden;
 	overflow-y: auto;
 	scrollbar-gutter: stable;
-`,p=i=>{let[p,m]=t(!0),h=0,g=!1,_,v=()=>{_!==void 0&&(window.clearTimeout(_),_=void 0)},y=e=>{p()!==e&&(m(e),g=!0,v(),_=window.setTimeout(()=>{g=!1,_=void 0},320))};n(()=>{i.view,h=0,g=!1,v(),m(!0)}),r(v);let b=e=>{let t=e.currentTarget.scrollTop,n=t-h;if(g){h=t,t<=4&&(g=!1,v(),m(!0));return}t<=4||n<-2?y(!0):n>2&&y(!1),h=t};return e(o,{get children(){return[e(s,{get"data-visible"(){return p()},get children(){return[e(c,{get children(){return[e(l,{get children(){return e(a,{size:22})}}),`Hunt Vault`]}}),e(u,{"aria-label":`Navegação principal`,get children(){return[e(d,{get"data-active"(){return i.view===`visualize`},type:`button`,onClick:()=>i.onViewChange(`visualize`),children:`Visualizar`}),e(d,{get"data-active"(){return i.view===`import`},type:`button`,onClick:()=>i.onViewChange(`import`),children:`Importar`})]}})]}}),e(f,{onScroll:b,get children(){return i.children}})]}})};export{p as default};
+`,p=i=>{let[p,m]=n(!0),h=0,g=!1,_,v=()=>{_!==void 0&&(window.clearTimeout(_),_=void 0)},y=e=>{p()!==e&&(m(e),g=!0,v(),_=window.setTimeout(()=>{g=!1,_=void 0},320))};e(()=>{i.view,h=0,g=!1,v(),m(!0)}),r(v);let b=e=>{let t=e.currentTarget.scrollTop,n=t-h;if(g){h=t,t<=4&&(g=!1,v(),m(!0));return}t<=4||n<-2?y(!0):n>2&&y(!1),h=t};return t(o,{get children(){return[t(s,{get"data-visible"(){return p()},get children(){return[t(c,{get children(){return[t(l,{get children(){return t(a,{size:22})}}),`Hunt Vault`]}}),t(u,{"aria-label":`Navegação principal`,get children(){return[t(d,{get"data-active"(){return i.view===`visualize`},type:`button`,onClick:()=>i.onViewChange(`visualize`),children:`Visualizar`}),t(d,{get"data-active"(){return i.view===`import`},type:`button`,onClick:()=>i.onViewChange(`import`),children:`Importar`})]}})]}}),t(f,{onScroll:b,get children(){return i.children}})]}})};export{p as default};

@@ -1,4 +1,4 @@
-import{d as e,f as t}from"./index-H4DeUj6V.js";import{t as n}from"./src-CzHbCJc-.js";import{a as r}from"./Icons-Bzxb0ISR.js";var i=n(`div`)`
+import{m as e,p as t}from"./index-B3H4Ryps.js";import{t as n}from"./src-CQI4vSmd.js";import{a as r}from"./Icons-BaBmXxSv.js";var i=n(`div`)`
 	position: fixed;
 	inset: 0;
 	z-index: 100;
@@ -114,4 +114,4 @@ import{d as e,f as t}from"./index-H4DeUj6V.js";import{t as n}from"./src-CzHbCJc-
 		color: #ffc0b9;
 		transform: translate(-1px, -1px);
 	}
-`,p=n=>{let u=e=>{!n.confirming&&e.target===e.currentTarget&&n.onCancel()};return t(e,{get when(){return n.open},get children(){return t(i,{onClick:u,get children(){return t(a,{role:`dialog`,"aria-modal":`true`,"aria-labelledby":`confirm-modal-title`,"aria-describedby":`confirm-modal-message`,get children(){return[t(o,{get children(){return t(r,{size:25})}}),t(s,{id:`confirm-modal-title`,get children(){return n.title}}),t(c,{id:`confirm-modal-message`,get children(){return n.message}}),t(l,{get children(){return[t(d,{type:`button`,get onClick(){return n.onCancel},get disabled(){return n.confirming},children:`Cancelar`}),t(f,{type:`button`,get onClick(){return n.onConfirm},get disabled(){return n.confirming},get children(){return n.confirming?`Excluindo...`:`Excluir caçada`}})]}})]}})}})}})};export{p as default};
+`,p=n=>{let u=e=>{!n.confirming&&e.target===e.currentTarget&&n.onCancel()};return e(t,{get when(){return n.open},get children(){return e(i,{onClick:u,get children(){return e(a,{role:`dialog`,"aria-modal":`true`,"aria-labelledby":`confirm-modal-title`,"aria-describedby":`confirm-modal-message`,get children(){return[e(o,{get children(){return e(r,{size:25})}}),e(s,{id:`confirm-modal-title`,get children(){return n.title}}),e(c,{id:`confirm-modal-message`,get children(){return n.message}}),e(l,{get children(){return[e(d,{type:`button`,get onClick(){return n.onCancel},get disabled(){return n.confirming},children:`Cancelar`}),e(f,{type:`button`,get onClick(){return n.onConfirm},get disabled(){return n.confirming},get children(){return n.confirming?`Excluindo...`:`Excluir caçada`}})]}})]}})}})}})};export{p as default};
