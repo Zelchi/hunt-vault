@@ -1,5 +1,5 @@
-import type { HuntPartyParseResult, ParsedHuntParty, PartyMember, PartyMetric } from "@/types/hunt-party";
 import { normalizeLabel } from "@/lib/hunt-detector";
+import type { HuntPartyParseResult, ParsedHuntParty, PartyMember, PartyMetric } from "@/types/hunt-party";
 
 const knownPartyMetricLabels = new Set(["loot", "supplies", "balance", "damage", "healing"]);
 

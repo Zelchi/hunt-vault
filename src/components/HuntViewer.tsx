@@ -1,7 +1,9 @@
 import { createMemo, createSignal, For, lazy, Show } from "solid-js";
 import { styled } from "solid-styled-components";
 import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/Icons";
+import { detectHuntReportType } from "@/lib/hunt-detector";
 import { formatCreatedAt, parseHuntReport } from "@/lib/hunt-parser";
+import { parseHuntPartyReport } from "@/lib/hunt-party";
 import type { HuntViewerProps } from "@/types/components";
 
 const ConfirmModal = lazy(() => import("@/components/ConfirmModal"));
@@ -18,6 +20,126 @@ const Card = styled("section")`
 	@media (max-width: 640px) {
 		padding: 1.25rem;
 	}
+`;
+
+const HuntTabs = styled("div")`
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.5rem;
+	margin-bottom: 1.5rem;
+`;
+
+const HuntTab = styled("button")`
+	padding: 0.75rem 1rem;
+	border: 2px solid #2b4638;
+	border-radius: 0;
+	background: #101512;
+	color: #a5a8b2;
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	cursor: pointer;
+
+	&[data-active="true"] {
+		border-color: #d9a441;
+		background: #d9a441;
+		box-shadow: 3px 3px 0 #6f4e0d;
+		color: #17130c;
+	}
+`;
+
+const PartyMembers = styled("div")`
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+	gap: 0.75rem;
+	margin-bottom: 1.5rem;
+`;
+
+const PartyMemberCard = styled("article")`
+	padding: 1rem;
+	border: 2px solid #526d5b;
+	border-radius: 0;
+	background: #18231d;
+	box-shadow: 2px 2px 0 #070a09;
+`;
+
+const PartyMemberName = styled("h2")`
+	margin: 0 0 0.75rem;
+	color: #f4f1ea;
+	font-size: 0.95rem;
+	line-height: 1.35;
+`;
+
+const LeaderBadge = styled("span")`
+	display: inline-block;
+	margin-left: 0.5rem;
+	padding: 0.2rem 0.35rem;
+	border: 1px solid #d9a441;
+	color: #d9a441;
+	font-size: 0.65rem;
+	letter-spacing: 0.08em;
+	vertical-align: middle;
+`;
+
+const PartyMetricList = styled("dl")`
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 0.35rem 0.75rem;
+	margin: 0;
+	font-size: 0.75rem;
+`;
+
+const PartyMetricLabel = styled("dt")`
+	color: #8e929d;
+`;
+
+const PartyMetricValue = styled("dd")`
+	margin: 0;
+	color: #70e0a0;
+	text-align: right;
+`;
+
+const PartyRankingGrid = styled("div")`
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.75rem;
+	margin-bottom: 1.5rem;
+
+	@media (max-width: 760px) {
+		grid-template-columns: 1fr;
+	}
+`;
+
+const PartyRanking = styled("section")`
+	padding: 1rem;
+	border: 2px solid #8c6c26;
+	border-radius: 0;
+	background: #101512;
+	box-shadow: 2px 2px 0 #070a09;
+`;
+
+const PartyRankingTitle = styled("h2")`
+	margin: 0 0 0.75rem;
+	color: #d9a441;
+	font-size: 0.8rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+`;
+
+const PartyRankingName = styled("strong")`
+	display: block;
+	color: #f4f1ea;
+	font-size: 0.8rem;
+	overflow-wrap: anywhere;
+`;
+
+const PartyRankingValue = styled("span")`
+	display: block;
+	margin-top: 0.25rem;
+	color: #70e0a0;
+	font-size: 0.9rem;
+	font-weight: 700;
 `;
 
 const ViewerHeader = styled("div")`
@@ -374,22 +496,81 @@ const LoadingState = styled("div")`
 
 export default (props: HuntViewerProps) => {
 	const [pendingDeleteId, setPendingDeleteId] = createSignal<string | null>(null);
+	const [activeCategory, setActiveCategory] = createSignal<"solo" | "party">("solo");
+	const [selectedIndex, setSelectedIndex] = createSignal(0);
+
+	const filteredHistory = createMemo(() => {
+		const reportType = activeCategory() === "party" ? "party" : "individual";
+		return props.history.filter((record) => detectHuntReportType(record.rawText) === reportType);
+	});
 
 	const activeHunt = createMemo(() => {
-		const record = props.history[props.currentIndex];
+		const records = filteredHistory();
+		const index = Math.min(selectedIndex(), Math.max(records.length - 1, 0));
+		const record = records[index];
 
 		return record
 			? {
-					record,
-					parsed: parseHuntReport(record.rawText),
-				}
+				record,
+				parsed: parseHuntReport(record.rawText),
+			}
 			: null;
+	});
+
+	const activeParty = createMemo(() => {
+		const active = activeHunt();
+		return activeCategory() === "party" && active ? parseHuntPartyReport(active.record.rawText) : null;
+	});
+
+	const partyRankings = createMemo(() => {
+		const party = activeParty();
+		if (!party) {
+			return null;
+		}
+
+		const getTopMember = (label: string) => {
+			return (
+				party.members
+					.map((member) => {
+						const metric = member.metrics.find((item) => item.label.toLowerCase() === label);
+						const numericValue = metric?.value.replace(/,/g, "").replace(/\./g, "") ?? "0";
+						return { member, metric, numericValue: Number(numericValue) };
+					})
+					.filter((item) => item.metric)
+					.sort((a, b) => b.numericValue - a.numericValue)[0] ?? null
+			);
+		};
+
+		return {
+			supplies: getTopMember("supplies"),
+			damage: getTopMember("damage"),
+			healing: getTopMember("healing"),
+		};
 	});
 
 	const pendingDelete = createMemo(() => {
 		const id = pendingDeleteId();
 		return id ? props.history.find((record) => record.id === id) : null;
 	});
+
+	const changeCategory = (category: "solo" | "party") => {
+		setActiveCategory(category);
+		setSelectedIndex(0);
+	};
+
+	const showPrevious = () => {
+		setSelectedIndex((index) => {
+			const length = filteredHistory().length;
+			return length === 0 ? 0 : (index - 1 + length) % length;
+		});
+	};
+
+	const showNext = () => {
+		setSelectedIndex((index) => {
+			const length = filteredHistory().length;
+			return length === 0 ? 0 : (index + 1) % length;
+		});
+	};
 
 	const requestDelete = (id: string) => {
 		setPendingDeleteId(id);
@@ -411,8 +592,16 @@ export default (props: HuntViewerProps) => {
 	return (
 		<>
 			<Card>
+				<HuntTabs role="tablist" aria-label="Tipo de caçada">
+					<HuntTab data-active={activeCategory() === "solo"} type="button" onClick={() => changeCategory("solo")}>
+						Hunt Solo
+					</HuntTab>
+					<HuntTab data-active={activeCategory() === "party"} type="button" onClick={() => changeCategory("party")}>
+						Hunt em Party
+					</HuntTab>
+				</HuntTabs>
 				<Show
-					when={!props.loading && props.history.length > 0}
+					when={!props.loading && filteredHistory().length > 0}
 					fallback={
 						props.loading ? (
 							<LoadingState>Carregando suas caçadas...</LoadingState>
@@ -435,12 +624,11 @@ export default (props: HuntViewerProps) => {
 							<>
 								<ViewerHeader>
 									<div>
-										<ViewerEyebrow>Histórico de caçadas</ViewerEyebrow>
 										<ViewerTitle>{active().parsed.session || "Caçada sem duração informada"}</ViewerTitle>
 									</div>
 									<ViewerActions>
 										<ViewerCounter>
-											{props.currentIndex + 1} de {props.history.length}
+											{selectedIndex() + 1} de {filteredHistory().length}
 										</ViewerCounter>
 										<DeleteButton
 											type="button"
@@ -453,13 +641,11 @@ export default (props: HuntViewerProps) => {
 								</ViewerHeader>
 
 								<Carousel>
-									<CarouselButton type="button" onClick={props.onPrevious} aria-label="Visualizar caçada anterior">
+									<CarouselButton type="button" onClick={showPrevious} aria-label="Visualizar caçada anterior">
 										<ChevronLeftIcon />
 									</CarouselButton>
-									<CarouselTrack>
-										<CarouselHint>Use as setas para navegar entre suas caçadas salvas</CarouselHint>
-									</CarouselTrack>
-									<CarouselButton type="button" onClick={props.onNext} aria-label="Visualizar próxima caçada">
+									<CarouselTrack />
+									<CarouselButton type="button" onClick={showNext} aria-label="Visualizar próxima caçada">
 										<ChevronRightIcon />
 									</CarouselButton>
 								</Carousel>
@@ -479,67 +665,138 @@ export default (props: HuntViewerProps) => {
 									</SessionSaved>
 								</SessionBanner>
 
-								<MetricsGrid>
-									<For each={active().parsed.metrics}>
-										{(metric) => (
-											<MetricCard>
-												<MetricLabel>{metric.label}</MetricLabel>
-												<MetricValue>{metric.value}</MetricValue>
-											</MetricCard>
-										)}
-									</For>
-								</MetricsGrid>
+								<Show when={activeParty()}>
+									{(party) => (
+										<PartyMembers aria-label="Participantes da party">
+											<For each={party().members}>
+												{(member) => (
+													<PartyMemberCard>
+														<PartyMemberName>
+															{member.name}
+															<Show when={member.isLeader}>
+																<LeaderBadge>LEADER</LeaderBadge>
+															</Show>
+														</PartyMemberName>
+														<PartyMetricList>
+															<For each={member.metrics}>
+																{(metric) => (
+																	<>
+																		<PartyMetricLabel>{metric.label}</PartyMetricLabel>
+																		<PartyMetricValue>{metric.value}</PartyMetricValue>
+																	</>
+																)}
+															</For>
+														</PartyMetricList>
+													</PartyMemberCard>
+												)}
+											</For>
+										</PartyMembers>
+									)}
+								</Show>
 
-								<ListsGrid>
-									<DataPanel>
-										<PanelHeader>
-											<PanelTitle>Monstros mortos</PanelTitle>
-											<PanelCount>{active().parsed.monsters.length} tipos</PanelCount>
-										</PanelHeader>
-										<Show
-											when={active().parsed.monsters.length > 0}
-											fallback={<PanelEmpty>Nenhum monstro encontrado.</PanelEmpty>}
-										>
-											<ItemList>
-												<For each={active().parsed.monsters}>
-													{(item) => (
-														<ItemRow>
-															<ItemQuantity>{item.quantity}x</ItemQuantity>
-															<ItemName>{item.name}</ItemName>
-														</ItemRow>
+								<Show when={partyRankings()}>
+									{(rankings) => (
+										<PartyRankingGrid aria-label="Destaques da party">
+											<PartyRanking>
+												<PartyRankingTitle>Top Supplies</PartyRankingTitle>
+												<Show when={rankings().supplies} fallback={<PanelEmpty>Sem dados</PanelEmpty>}>
+													{(top) => (
+														<>
+															<PartyRankingName>{top().member.name}</PartyRankingName>
+															<PartyRankingValue>{top().metric?.value}</PartyRankingValue>
+														</>
 													)}
-												</For>
-											</ItemList>
-										</Show>
-									</DataPanel>
-
-									<DataPanel>
-										<PanelHeader>
-											<PanelTitle>Itens coletados</PanelTitle>
-											<PanelCount>{active().parsed.lootedItems.length} tipos</PanelCount>
-										</PanelHeader>
-										<Show
-											when={active().parsed.lootedItems.length > 0}
-											fallback={<PanelEmpty>Nenhum item encontrado.</PanelEmpty>}
-										>
-											<ItemList>
-												<For each={active().parsed.lootedItems}>
-													{(item) => (
-														<ItemRow>
-															<ItemQuantity>{item.quantity}x</ItemQuantity>
-															<ItemName>{item.name}</ItemName>
-														</ItemRow>
+												</Show>
+											</PartyRanking>
+											<PartyRanking>
+												<PartyRankingTitle>Top Damage</PartyRankingTitle>
+												<Show when={rankings().damage} fallback={<PanelEmpty>Sem dados</PanelEmpty>}>
+													{(top) => (
+														<>
+															<PartyRankingName>{top().member.name}</PartyRankingName>
+															<PartyRankingValue>{top().metric?.value}</PartyRankingValue>
+														</>
 													)}
-												</For>
-											</ItemList>
-										</Show>
-									</DataPanel>
-								</ListsGrid>
+												</Show>
+											</PartyRanking>
+											<PartyRanking>
+												<PartyRankingTitle>Top Healing</PartyRankingTitle>
+												<Show when={rankings().healing} fallback={<PanelEmpty>Sem dados</PanelEmpty>}>
+													{(top) => (
+														<>
+															<PartyRankingName>{top().member.name}</PartyRankingName>
+															<PartyRankingValue>{top().metric?.value}</PartyRankingValue>
+														</>
+													)}
+												</Show>
+											</PartyRanking>
+										</PartyRankingGrid>
+									)}
+								</Show>
 
-								<RawDetails>
-									<summary>Ver texto original da caçada</summary>
-									<RawText>{active().record.rawText}</RawText>
-								</RawDetails>
+								<Show when={activeCategory() === "solo"}>
+									<MetricsGrid>
+										<For each={active().parsed.metrics}>
+											{(metric) => (
+												<MetricCard>
+													<MetricLabel>{metric.label}</MetricLabel>
+													<MetricValue>{metric.value}</MetricValue>
+												</MetricCard>
+											)}
+										</For>
+									</MetricsGrid>
+
+									<ListsGrid>
+										<DataPanel>
+											<PanelHeader>
+												<PanelTitle>Monstros mortos</PanelTitle>
+												<PanelCount>{active().parsed.monsters.length} tipos</PanelCount>
+											</PanelHeader>
+											<Show
+												when={active().parsed.monsters.length > 0}
+												fallback={<PanelEmpty>Nenhum monstro encontrado.</PanelEmpty>}
+											>
+												<ItemList>
+													<For each={active().parsed.monsters}>
+														{(item) => (
+															<ItemRow>
+																<ItemQuantity>{item.quantity}x</ItemQuantity>
+																<ItemName>{item.name}</ItemName>
+															</ItemRow>
+														)}
+													</For>
+												</ItemList>
+											</Show>
+										</DataPanel>
+
+										<DataPanel>
+											<PanelHeader>
+												<PanelTitle>Itens coletados</PanelTitle>
+												<PanelCount>{active().parsed.lootedItems.length} tipos</PanelCount>
+											</PanelHeader>
+											<Show
+												when={active().parsed.lootedItems.length > 0}
+												fallback={<PanelEmpty>Nenhum item encontrado.</PanelEmpty>}
+											>
+												<ItemList>
+													<For each={active().parsed.lootedItems}>
+														{(item) => (
+															<ItemRow>
+																<ItemQuantity>{item.quantity}x</ItemQuantity>
+																<ItemName>{item.name}</ItemName>
+															</ItemRow>
+														)}
+													</For>
+												</ItemList>
+											</Show>
+										</DataPanel>
+									</ListsGrid>
+
+									<RawDetails>
+										<summary>Ver texto original da caçada</summary>
+										<RawText>{active().record.rawText}</RawText>
+									</RawDetails>
+								</Show>
 							</>
 						)}
 					</Show>
