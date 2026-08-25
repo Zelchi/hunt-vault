@@ -7,9 +7,9 @@ import { validateHuntPartyReport } from "@/lib/hunt-party";
 import { validateHuntSoloReport } from "@/lib/hunt-solo";
 import type { HuntRecord, View } from "@/types/hunt-common";
 
-const AppShell = lazy(() => import("@/components/AppShell"));
-const HuntImporter = lazy(() => import("@/components/HuntImporter"));
-const HuntViewer = lazy(() => import("@/components/HuntViewer"));
+const AppShell = lazy(() => import("@/components/app-shell"));
+const HuntImporter = lazy(() => import("@/components/hunt-importer"));
+const HuntViewer = lazy(() => import("@/components/hunt-viewer"));
 
 export default () => {
 	const [clipboardText, setClipboardText] = createSignal("");

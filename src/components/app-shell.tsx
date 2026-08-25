@@ -3,7 +3,7 @@ import { styled } from "solid-styled-components";
 
 import type { AppShellProps } from "@/types/components";
 
-import { SwordIcon } from "@/components/Icons";
+import { SwordIcon } from "@/components/icons";
 
 const Page = styled("div")`
 	height: 100vh;

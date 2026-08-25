@@ -9,9 +9,9 @@ import type { HuntViewerProps } from "@/types/components";
 import type { PartyMember } from "@/types/hunt-party";
 import type { HuntMetric } from "@/types/hunt-common";
 
-import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/Icons";
+import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/icons";
 
-const ConfirmModal = lazy(() => import("@/components/ConfirmModal"));
+const ConfirmModal = lazy(() => import("@/components/confirm-modal"));
 
 const Card = styled("section")`
 	width: 100%;

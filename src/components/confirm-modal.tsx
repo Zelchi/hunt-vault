@@ -3,7 +3,7 @@ import { styled } from "solid-styled-components";
 
 import type { ConfirmModalProps } from "@/types/components";
 
-import { WarningIcon } from "@/components/Icons";
+import { WarningIcon } from "@/components/icons";
 
 const Backdrop = styled("div")`
 	position: fixed;
