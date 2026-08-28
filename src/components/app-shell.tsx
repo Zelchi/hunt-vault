@@ -1,9 +1,7 @@
 import { createEffect, createSignal, onCleanup } from "solid-js";
 import { styled } from "solid-styled-components";
-
-import type { AppShellProps } from "@/types/components";
-
 import { SwordIcon } from "@/components/icons";
+import type { AppShellProps } from "@/types/components";
 
 const Page = styled("div")`
 	height: 100vh;
@@ -98,6 +96,7 @@ const Nav = styled("nav")`
 `;
 
 const NavButton = styled("button")`
+	width: 7.5rem;
 	padding: 0.4rem 0.75rem;
 	border: 1px solid transparent;
 	border-radius: 0;
@@ -106,8 +105,8 @@ const NavButton = styled("button")`
 	font-size: 0.72rem;
 	font-weight: 700;
 	letter-spacing: 0.08em;
+	text-align: center;
 	text-transform: uppercase;
-	cursor: pointer;
 	transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
 
 	&[data-active="true"] {
@@ -125,6 +124,7 @@ const NavButton = styled("button")`
 
 	@media (max-width: 640px) {
 		flex: 1;
+		width: auto;
 	}
 `;
 
@@ -132,8 +132,10 @@ const Main = styled("main")`
 	flex: 1;
 	min-height: 0;
 	display: flex;
-	align-items: flex-start;
-	justify-content: center;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 1.5rem;
 	width: 100%;
 	padding: 2rem 1rem 4rem;
 	overflow-x: hidden;
@@ -214,14 +216,14 @@ export default (props: AppShellProps) => {
 					Hunt Vault
 				</Brand>
 				<Nav aria-label="Navegação principal">
-					<NavButton data-active={props.view === "visualize"} type="button" onClick={() => props.onViewChange("visualize")}>
-						Visualizar
+					<NavButton data-active={props.view === "solo"} type="button" onClick={() => props.onViewChange("solo")}>
+						Solo
 					</NavButton>
-					<NavButton data-active={props.view === "dashboard"} type="button" onClick={() => props.onViewChange("dashboard")}>
-						Dashboard
+					<NavButton data-active={props.view === "party"} type="button" onClick={() => props.onViewChange("party")}>
+						Party
 					</NavButton>
 					<NavButton data-active={props.view === "import"} type="button" onClick={() => props.onViewChange("import")}>
-						Importar
+						Import
 					</NavButton>
 				</Nav>
 			</Header>

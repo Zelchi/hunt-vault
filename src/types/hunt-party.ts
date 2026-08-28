@@ -9,6 +9,7 @@ export type PartyMember = {
 export type ParsedHuntParty = {
 	sessionData: string;
 	session: string;
+	durationSeconds: number;
 	lootType: string;
 	metrics: HuntMetric[];
 	members: PartyMember[];

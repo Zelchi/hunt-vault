@@ -41,7 +41,6 @@ const ClipboardButton = styled("button")`
 	font-weight: 700;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	cursor: pointer;
 	transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 
 	&:hover {
@@ -70,7 +69,6 @@ const SaveButton = styled("button")`
 	font-weight: 700;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	cursor: pointer;
 	transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 
 	&:hover {
@@ -80,7 +78,6 @@ const SaveButton = styled("button")`
 	}
 
 	&:disabled {
-		cursor: not-allowed;
 		opacity: 0.45;
 		transform: none;
 	}

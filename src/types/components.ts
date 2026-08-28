@@ -22,12 +22,18 @@ export type HuntImporterProps = {
 export type HuntViewerProps = {
 	history: HuntRecord[];
 	currentIndex: number;
+	initialCategory?: "solo" | "party";
 	loading: boolean;
 	deleting: boolean;
 	onPrevious: () => void;
 	onNext: () => void;
 	onImport: () => void;
 	onDelete: (id: string) => void;
+};
+
+export type DashboardProps = {
+	history: HuntRecord[];
+	mode: "solo" | "party";
 };
 
 export type ConfirmModalProps = {

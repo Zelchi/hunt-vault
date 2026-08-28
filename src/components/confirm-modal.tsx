@@ -1,9 +1,7 @@
 import { Show } from "solid-js";
 import { styled } from "solid-styled-components";
-
-import type { ConfirmModalProps } from "@/types/components";
-
 import { WarningIcon } from "@/components/icons";
+import type { ConfirmModalProps } from "@/types/components";
 
 const Backdrop = styled("div")`
 	position: fixed;
@@ -105,7 +103,6 @@ const ActionButton = styled("button")`
 	font-weight: 700;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
-	cursor: pointer;
 	transition: background 150ms ease, color 150ms ease, transform 150ms ease;
 
 	&:disabled {

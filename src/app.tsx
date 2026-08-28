@@ -1,6 +1,7 @@
 import { MetaProvider, Title } from "@solidjs/meta";
 import { createSignal, lazy, onCleanup, onMount } from "solid-js";
 import { Toaster, toast } from "solid-toast";
+
 import { database } from "@/lib/database";
 import { detectHuntReportType } from "@/lib/hunt-detector";
 import { validateHuntPartyReport } from "@/lib/hunt-party";
@@ -10,6 +11,7 @@ import type { HuntRecord, View } from "@/types/hunt-common";
 const AppShell = lazy(() => import("@/components/app-shell"));
 const HuntImporter = lazy(() => import("@/components/hunt-importer"));
 const HuntViewer = lazy(() => import("@/components/hunt-viewer"));
+const HuntDashboard = lazy(() => import("@/components/hunt-dashboard"));
 
 export default () => {
 	const [clipboardText, setClipboardText] = createSignal("");
@@ -59,10 +61,12 @@ export default () => {
 	const handleViewChange = (nextView: View) => {
 		setView(nextView);
 
-		if (nextView === "visualize" || nextView === "dashboard") {
+		if (nextView === "solo" || nextView === "party") {
 			void loadHistory();
 		}
 	};
+
+	const activeCategory = () => (view() === "party" ? "party" : "solo");
 
 	const readClipboard = async () => {
 		if (!navigator.clipboard) {
@@ -199,7 +203,7 @@ export default () => {
 
 	return (
 		<MetaProvider>
-			<Title>{view() === "import" ? "Importar" : view() === "dashboard" ? "Dashboard" : "Visualizar"} | HuntVault</Title>
+			<Title>HuntVault</Title>
 			<Toaster position="bottom-right" />
 			<AppShell view={view()} onViewChange={handleViewChange}>
 				{view() === "import" ? (
@@ -215,18 +219,22 @@ export default () => {
 						}}
 					/>
 				) : (
-					<HuntViewer
-						history={history()}
-						currentIndex={currentIndex()}
-						loading={loadingHistory()}
-						deleting={deleting()}
-						onPrevious={showPreviousHunt}
-						onNext={showNextHunt}
-						onImport={() => setView("import")}
-						onDelete={(id) => {
-							void deleteHunt(id);
-						}}
-					/>
+					<>
+						<HuntDashboard history={history()} mode={activeCategory()} />
+						<HuntViewer
+							history={history()}
+							currentIndex={currentIndex()}
+							initialCategory={activeCategory()}
+							loading={loadingHistory()}
+							deleting={deleting()}
+							onPrevious={showPreviousHunt}
+							onNext={showNextHunt}
+							onImport={() => setView("import")}
+							onDelete={(id) => {
+								void deleteHunt(id);
+							}}
+						/>
+					</>
 				)}
 			</AppShell>
 		</MetaProvider>

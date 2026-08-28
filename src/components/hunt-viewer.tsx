@@ -1,15 +1,11 @@
-import { createMemo, createSignal, For, lazy, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, lazy, Show } from "solid-js";
 import { styled } from "solid-styled-components";
-
-import { detectHuntReportType, normalizeLabel } from "@/lib/hunt-detector";
-import { formatCreatedAt, parseHuntSoloReport } from "@/lib/hunt-solo";
-import { parseHuntPartyReport } from "@/lib/hunt-party";
-
-import type { HuntViewerProps } from "@/types/components";
-import type { PartyMember } from "@/types/hunt-party";
-import type { HuntMetric } from "@/types/hunt-common";
-
 import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/icons";
+import { getPartyRankings } from "@/lib/hunt-dashboard";
+import { detectHuntReportType } from "@/lib/hunt-detector";
+import { parseHuntPartyReport } from "@/lib/hunt-party";
+import { formatCreatedAt, parseHuntSoloReport } from "@/lib/hunt-solo";
+import type { HuntViewerProps } from "@/types/components";
 
 const ConfirmModal = lazy(() => import("@/components/confirm-modal"));
 
@@ -24,33 +20,6 @@ const Card = styled("section")`
 
 	@media (max-width: 640px) {
 		padding: 1.25rem;
-	}
-`;
-
-const HuntTabs = styled("div")`
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 0.5rem;
-	margin-bottom: 1.5rem;
-`;
-
-const HuntTab = styled("button")`
-	padding: 0.75rem 1rem;
-	border: 2px solid #2b4638;
-	border-radius: 0;
-	background: #101512;
-	color: #a5a8b2;
-	font-size: 0.8rem;
-	font-weight: 700;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	cursor: pointer;
-
-	&[data-active="true"] {
-		border-color: #d9a441;
-		background: #d9a441;
-		box-shadow: 3px 3px 0 #6f4e0d;
-		color: #17130c;
 	}
 `;
 
@@ -202,7 +171,6 @@ const DeleteButton = styled("button")`
 	font-weight: 700;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
-	cursor: pointer;
 	transition: background 150ms ease, color 150ms ease, transform 150ms ease;
 
 	&:hover {
@@ -232,7 +200,6 @@ const CarouselButton = styled("button")`
 	box-shadow: 3px 3px 0 #6f4e0d;
 	color: #d9a441;
 	font-size: 1.25rem;
-	cursor: pointer;
 	transition: background 150ms ease, transform 150ms ease;
 
 	&:hover {
@@ -421,7 +388,6 @@ const RawDetails = styled("details")`
 	color: #a5a8b2;
 	font-size: 0.875rem;
 	font-weight: 600;
-	cursor: pointer;
 	user-select: none;
 	}
 `;
@@ -436,6 +402,7 @@ const RawText = styled("pre")`
 	overflow: auto;
 	scrollbar-color: #63836c #0a0e0c;
 	scrollbar-width: thin;
+	user-select: text;
 `;
 
 const EmptyState = styled("div")`
@@ -473,7 +440,6 @@ const EmptyAction = styled("button")`
 	color: #d9a441;
 	font-size: 0.875rem;
 	font-weight: 600;
-	cursor: pointer;
 
 	&:hover {
 		background: #18231d;
@@ -491,8 +457,16 @@ const LoadingState = styled("div")`
 
 export default (props: HuntViewerProps) => {
 	const [pendingDeleteId, setPendingDeleteId] = createSignal<string | null>(null);
-	const [activeCategory, setActiveCategory] = createSignal<"solo" | "party">("solo");
+	const [activeCategory, setActiveCategory] = createSignal<"solo" | "party">(props.initialCategory ?? "solo");
 	const [selectedIndex, setSelectedIndex] = createSignal(0);
+
+	createEffect(() => {
+		const category = props.initialCategory;
+		if (category) {
+			setActiveCategory(category);
+			setSelectedIndex(0);
+		}
+	});
 
 	const filteredHistory = createMemo(() => {
 		const reportType = activeCategory() === "party" ? "party" : "solo";
@@ -517,52 +491,12 @@ export default (props: HuntViewerProps) => {
 		return activeCategory() === "party" && active ? parseHuntPartyReport(active.record.rawText) : null;
 	});
 
-	const partyRankings = createMemo(() => {
-		const party = activeParty();
-		if (!party) {
-			return null;
-		}
-
-		const getTopMember = (metricLabel: string, ascending: boolean) => {
-			const memberMetrics = party.members
-				.map((member) => {
-					const metric = member.metrics.find((m) => normalizeLabel(m.label) === normalizeLabel(metricLabel));
-					if (!metric) {
-						return null;
-					}
-					return { member, metric };
-				})
-				.filter((item): item is { member: PartyMember; metric: HuntMetric } => item !== null);
-
-			if (memberMetrics.length === 0) {
-				return null;
-			}
-
-			const sorted = [...memberMetrics].sort((a, b) => {
-				const aValue = parseFloat(a.metric.value.replace(/,/g, "").replace(/\./g, ""));
-				const bValue = parseFloat(b.metric.value.replace(/,/g, "").replace(/\./g, ""));
-				return ascending ? aValue - bValue : bValue - aValue;
-			});
-
-			return sorted[0] ?? null;
-		};
-
-		return {
-			supplies: getTopMember("supplies", true),
-			damage: getTopMember("damage", false),
-			healing: getTopMember("healing", false),
-		};
-	});
+	const partyRankings = createMemo(() => getPartyRankings(activeParty()));
 
 	const pendingDelete = createMemo(() => {
 		const id = pendingDeleteId();
 		return id ? props.history.find((record) => record.id === id) : null;
 	});
-
-	const changeCategory = (category: "solo" | "party") => {
-		setActiveCategory(category);
-		setSelectedIndex(0);
-	};
 
 	const showPrevious = () => {
 		setSelectedIndex((index) => {
@@ -598,14 +532,6 @@ export default (props: HuntViewerProps) => {
 	return (
 		<>
 			<Card>
-				<HuntTabs role="tablist" aria-label="Tipo de caçada">
-					<HuntTab data-active={activeCategory() === "solo"} type="button" onClick={() => changeCategory("solo")}>
-						Hunt Solo
-					</HuntTab>
-					<HuntTab data-active={activeCategory() === "party"} type="button" onClick={() => changeCategory("party")}>
-						Hunt Party
-					</HuntTab>
-				</HuntTabs>
 				<Show
 					when={!props.loading && filteredHistory().length > 0}
 					fallback={

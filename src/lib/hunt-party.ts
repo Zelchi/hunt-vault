@@ -1,4 +1,5 @@
 import { normalizeLabel } from "@/lib/hunt-detector";
+import { resolveHuntDurationSeconds } from "@/lib/hunt-duration";
 
 import type { HuntMetric } from "@/types/hunt-common";
 import type { HuntPartyParseResult, ParsedHuntParty, PartyMember } from "@/types/hunt-party";
@@ -27,6 +28,7 @@ const parseHuntPartyReport = (rawText: string): ParsedHuntParty => {
 	const members: PartyMember[] = [];
 	let sessionData = "";
 	let session = "";
+	let displayedDuration = "";
 	let lootType = "";
 	let currentMember: PartyMember | null = null;
 
@@ -55,6 +57,14 @@ const parseHuntPartyReport = (rawText: string): ParsedHuntParty => {
 		if (sessionMatch) {
 			flushMember();
 			session = sessionMatch[1].trim();
+			continue;
+		}
+
+		const sessionLengthMatch = line.match(/^Session length:\s*(.*)$/i);
+		if (sessionLengthMatch) {
+			flushMember();
+			displayedDuration = sessionLengthMatch[1].trim();
+			session ||= displayedDuration;
 			continue;
 		}
 
@@ -89,10 +99,10 @@ const parseHuntPartyReport = (rawText: string): ParsedHuntParty => {
 	}
 
 	flushMember();
-
 	return {
 		sessionData,
 		session,
+		durationSeconds: resolveHuntDurationSeconds(sessionData, displayedDuration || session),
 		lootType,
 		metrics,
 		members,

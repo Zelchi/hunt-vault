@@ -8,6 +8,7 @@ export type HuntListItem = {
 export type ParsedHuntSolo = {
 	sessionData: string;
 	session: string;
+	durationSeconds: number;
 	metrics: HuntMetric[];
 	monsters: HuntListItem[];
 	lootedItems: HuntListItem[];

@@ -1,4 +1,5 @@
 import { normalizeLabel } from "@/lib/hunt-detector";
+import { resolveHuntDurationSeconds } from "@/lib/hunt-duration";
 
 import type { HuntMetric } from "@/types/hunt-common";
 import type { HuntListItem, HuntSoloParseResult, ParsedHuntSolo } from "@/types/hunt-solo";
@@ -34,6 +35,7 @@ const parseHuntSoloReport = (rawText: string): ParsedHuntSolo => {
 	const lootedItems: HuntListItem[] = [];
 	let sessionData = "";
 	let session = "";
+	let displayedDuration = "";
 	let section: "metrics" | "monsters" | "lootedItems" = "metrics";
 
 	for (const rawLine of rawText.split(/\r?\n/)) {
@@ -55,6 +57,14 @@ const parseHuntSoloReport = (rawText: string): ParsedHuntSolo => {
 			continue;
 		}
 
+		const sessionLengthMatch = line.match(/^Session length:\s*(.*)$/i);
+		if (sessionLengthMatch) {
+			displayedDuration = sessionLengthMatch[1].trim();
+			session ||= displayedDuration;
+			section = "metrics";
+			continue;
+		}
+
 		if (/^Looted Items:\s*$/i.test(line)) {
 			section = "lootedItems";
 			continue;
@@ -63,6 +73,7 @@ const parseHuntSoloReport = (rawText: string): ParsedHuntSolo => {
 		const sessionMatch = line.match(/^Session:\s*(.*)$/i);
 		if (sessionMatch) {
 			session = sessionMatch[1].trim();
+			displayedDuration = session;
 			section = "metrics";
 			continue;
 		}
@@ -95,6 +106,7 @@ const parseHuntSoloReport = (rawText: string): ParsedHuntSolo => {
 	return {
 		sessionData,
 		session,
+		durationSeconds: resolveHuntDurationSeconds(sessionData, displayedDuration || session),
 		metrics,
 		monsters,
 		lootedItems,
@@ -131,8 +143,8 @@ const validateHuntSoloReport = (rawText: string): HuntSoloParseResult => {
 		errors.push("não encontrei a linha Session data");
 	}
 
-	if (!hasSession) {
-		errors.push("não encontrei a linha Session");
+	if (!hasSession && !hasSessionData) {
+		errors.push("não encontrei as informações da sessão");
 	}
 
 	if (killedMonstersIndex === -1) {

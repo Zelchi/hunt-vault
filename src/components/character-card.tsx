@@ -55,7 +55,6 @@ const AddButton = styled("button")`
 	background: transparent;
 	color: #edbd5a;
 	font-weight: 600;
-	cursor: pointer;
 
 	&:hover {
 		background: #d9a441;
