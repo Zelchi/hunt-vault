@@ -1,4 +1,3 @@
-import { MetaProvider, Title } from "@solidjs/meta";
 import { createSignal, lazy, onCleanup, onMount } from "solid-js";
 import { Toaster, toast } from "solid-toast";
 
@@ -21,7 +20,6 @@ export default () => {
 	const [view, setView] = createSignal<View>("import");
 	const [history, setHistory] = createSignal<HuntRecord[]>([]);
 	const [loadingHistory, setLoadingHistory] = createSignal(false);
-	const [currentIndex, setCurrentIndex] = createSignal(0);
 	const clickSound = new Audio("/click.mp3");
 
 	onMount(() => {
@@ -50,7 +48,6 @@ export default () => {
 		try {
 			const records = await database.hunts.orderBy("createdAt").reverse().toArray();
 			setHistory(records);
-			setCurrentIndex(0);
 		} catch {
 			toast.error("Não foi possível carregar o histórico.");
 		} finally {
@@ -142,7 +139,6 @@ export default () => {
 
 			await database.hunts.add(record);
 			setHistory((records) => [record, ...records]);
-			setCurrentIndex(0);
 			setClipboardText("");
 			toast.success("Resultado salvo no IndexedDB!");
 		} catch {
@@ -172,17 +168,6 @@ export default () => {
 
 			const remainingRecords = records.filter((record) => record.id !== id);
 			setHistory(remainingRecords);
-			setCurrentIndex((index) => {
-				if (remainingRecords.length === 0) {
-					return 0;
-				}
-
-				if (deletedIndex < index) {
-					return index - 1;
-				}
-
-				return Math.min(index, remainingRecords.length - 1);
-			});
 			toast.success("Caçada excluída do histórico.");
 		} catch {
 			toast.error("Não foi possível excluir a caçada.");
@@ -191,19 +176,8 @@ export default () => {
 		}
 	};
 
-	const showPreviousHunt = () => {
-		setCurrentIndex((index) => {
-			return history().length === 0 ? 0 : (index - 1 + history().length) % history().length;
-		});
-	};
-
-	const showNextHunt = () => {
-		setCurrentIndex((index) => (history().length === 0 ? 0 : (index + 1) % history().length));
-	};
-
 	return (
-		<MetaProvider>
-			<Title>HuntVault</Title>
+		<>
 			<Toaster position="bottom-right" />
 			<AppShell view={view()} onViewChange={handleViewChange}>
 				{view() === "import" ? (
@@ -223,12 +197,9 @@ export default () => {
 						<HuntDashboard history={history()} mode={activeCategory()} />
 						<HuntViewer
 							history={history()}
-							currentIndex={currentIndex()}
 							initialCategory={activeCategory()}
 							loading={loadingHistory()}
 							deleting={deleting()}
-							onPrevious={showPreviousHunt}
-							onNext={showNextHunt}
 							onImport={() => setView("import")}
 							onDelete={(id) => {
 								void deleteHunt(id);
@@ -237,6 +208,6 @@ export default () => {
 					</>
 				)}
 			</AppShell>
-		</MetaProvider>
+		</>
 	);
 };

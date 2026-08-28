@@ -1,6 +1,5 @@
 import type { Accessor } from "solid-js";
 import { createEffect, createMemo, For, onCleanup, onMount, Show } from "solid-js";
-import { styled } from "solid-styled-components";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import {
@@ -22,234 +21,21 @@ import {
 	soloMetrics,
 	summarizeHunts,
 } from "@/lib/hunt-dashboard";
+import * as styles from "@/styles/hunt-dashboard.css";
 import type { DashboardProps } from "@/types/components";
-
-const Page = styled("div")`
-	width: 100%;
-	max-width: 74rem;
-	display: flex;
-	flex-direction: column;
-	gap: 1.5rem;
-`;
-
-const Section = styled("section")`
-	padding: 1.5rem;
-	border: 2px solid #2b4638;
-	background: #121816;
-	box-shadow: 4px 4px 0 #050706;
-`;
-
-const SectionHeader = styled("header")`
-	display: flex;
-	align-items: flex-end;
-	justify-content: space-between;
-	gap: 1rem;
-	margin-bottom: 1.25rem;
-	padding-bottom: 1rem;
-	border-bottom: 2px solid #1a2b22;
-
-	@media (max-width: 640px) {
-		align-items: flex-start;
-		flex-direction: column;
-	}
-`;
-
-const SectionKicker = styled("div")`
-	margin-bottom: 0.35rem;
-	color: #d9a441;
-	font-size: 0.68rem;
-	font-weight: 700;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-`;
-
-const SectionTitle = styled("h2")`
-	margin: 0;
-	color: #f4f1ea;
-	font-size: 1.25rem;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-`;
-
-const CountBadge = styled("div")`
-	padding: 0.45rem 0.7rem;
-	border: 1px solid #526d5b;
-	color: #8ba66f;
-	font-size: 0.72rem;
-	font-weight: 700;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	white-space: nowrap;
-`;
-
-const KpiGrid = styled("div")`
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-	gap: 0.75rem;
-`;
-
-const Kpi = styled("div")`
-	min-height: 5.2rem;
-	padding: 0.85rem;
-	border: 1px solid #1f3428;
-	background: #0d1310;
-`;
-
-const KpiLabel = styled("div")`
-	margin-bottom: 0.45rem;
-	color: #7f9183;
-	font-size: 0.68rem;
-	font-weight: 700;
-	letter-spacing: 0.07em;
-	text-transform: uppercase;
-`;
-
-const KpiValue = styled("div")`
-	color: #f4f1ea;
-	font-family: "Courier New", monospace;
-	font-size: 1.08rem;
-	font-weight: 700;
-	line-height: 1.2;
-`;
-
-const KpiDetail = styled("div")`
-	margin-top: 0.35rem;
-	overflow: hidden;
-	color: #8b9a8f;
-	font-size: 0.68rem;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-`;
-
-const ChartGrid = styled("div")`
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-	gap: 1rem;
-	margin-top: 1rem;
-`;
-
-const ChartCardShell = styled("article")`
-	min-width: 0;
-	border: 1px solid #1f3428;
-	background: #0d1310;
-`;
-
-const ChartHeader = styled("header")`
-	padding: 0.8rem 0.9rem 0.65rem;
-	border-bottom: 1px solid #1a2b22;
-`;
-
-const ChartTitle = styled("h3")`
-	margin: 0;
-	color: #f4f1ea;
-	font-size: 0.82rem;
-	letter-spacing: 0.05em;
-	text-transform: uppercase;
-`;
-
-const ChartDescription = styled("p")`
-	margin: 0.3rem 0 0;
-	color: #708277;
-	font-size: 0.7rem;
-`;
-
-const ChartSurface = styled("div")`
-	position: relative;
-	width: 100%;
-	height: 248px;
-	min-height: 248px;
-	padding: 0.35rem;
-	overflow: hidden;
-	background: #0c100f;
-`;
-
-const ChartEmpty = styled("div")`
-	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 1rem;
-	color: #607267;
-	font-size: 0.75rem;
-	text-align: center;
-`;
-
-const ChartNote = styled("div")`
-	padding: 0.45rem 0.75rem;
-	border-top: 1px solid #17271e;
-	color: #607267;
-	font-size: 0.68rem;
-	line-height: 1.4;
-`;
-
-const EmptyState = styled("div")`
-	margin-top: 1rem;
-	padding: 2rem 1rem;
-	border: 1px dashed #2b4638;
-	background: #0d1310;
-	color: #718176;
-	font-size: 0.82rem;
-	line-height: 1.6;
-	text-align: center;
-`;
-
-const Ranking = styled("div")`
-	margin-top: 1rem;
-	border: 1px solid #1f3428;
-	background: #0d1310;
-	overflow-x: auto;
-`;
-
-const RankingTitle = styled("h3")`
-	margin: 0;
-	padding: 0.9rem;
-	border-bottom: 1px solid #1a2b22;
-	color: #d9a441;
-	font-size: 0.82rem;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-`;
-
-const Table = styled("table")`
-	width: 100%;
-	border-collapse: collapse;
-	min-width: 600px;
-
-	th,
-	td {
-	padding: 0.7rem 0.9rem;
-	border-bottom: 1px solid #17271e;
-	font-size: 0.75rem;
-	text-align: right;
-	white-space: nowrap;
-	}
-
-	th:first-child,
-	td:first-child {
-	text-align: left;
-	}
-
-	th {
-	color: #708277;
-	font-size: 0.65rem;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-	}
-
-	td {
-	color: #d8ddd5;
-	font-family: "Courier New", monospace;
-	}
-
-	tbody tr:last-child td {
-	border-bottom: 0;
-	}
-`;
 
 type MetricChartProps = {
 	config: MetricConfig;
 	values: Accessor<number[]>;
+};
+
+type KpiColor = "gold" | "green" | "orange" | "red" | "lightGreen";
+
+type KpiCardProps = {
+	label: string;
+	value: string;
+	detail?: string;
+	color?: KpiColor;
 };
 
 const MetricChart = (props: MetricChartProps) => {
@@ -354,32 +140,42 @@ const MetricChart = (props: MetricChartProps) => {
 	});
 
 	return (
-		<ChartCardShell>
-			<ChartHeader>
-				<ChartTitle>{props.config.title}</ChartTitle>
-				<ChartDescription>{props.config.description}</ChartDescription>
-			</ChartHeader>
-			<ChartSurface ref={chartElement}>
+		<article class={styles.chartCardShell}>
+			<header class={styles.chartHeader}>
+				<h3 class={styles.chartTitle}>{props.config.title}</h3>
+				<p class={styles.chartDescription}>{props.config.description}</p>
+			</header>
+			<div class={styles.chartSurface} ref={chartElement}>
 				<Show when={props.values().length === 0}>
-					<ChartEmpty>Importe uma caçada válida para visualizar este gráfico.</ChartEmpty>
+					<div class={styles.chartEmpty}>Importe uma caçada válida para visualizar este gráfico.</div>
 				</Show>
-			</ChartSurface>
+			</div>
 			<Show when={props.values().length === 1}>
-				<ChartNote>1 caçada registrada: o ponto está centralizado. A linha aparece a partir da segunda caçada.</ChartNote>
+				<div class={styles.chartNote}>
+					1 caçada registrada: o ponto está centralizado. A linha aparece a partir da segunda caçada.
+				</div>
 			</Show>
-		</ChartCardShell>
+		</article>
 	);
 };
 
-const KpiCard = (props: { label: string; value: string; detail?: string; color?: string }) => {
+const KpiCard = (props: KpiCardProps) => {
+	const colorClass = {
+		gold: styles.kpiValueGold,
+		green: styles.kpiValueGreen,
+		orange: styles.kpiValueOrange,
+		red: styles.kpiValueRed,
+		lightGreen: styles.kpiValueLightGreen,
+	} as const;
+
 	return (
-		<Kpi>
-			<KpiLabel>{props.label}</KpiLabel>
-			<KpiValue style={{ color: props.color ?? "#f4f1ea" }}>{props.value}</KpiValue>
+		<div class={styles.kpi}>
+			<div class={styles.kpiLabel}>{props.label}</div>
+			<div class={`${styles.kpiValue}${props.color ? ` ${colorClass[props.color]}` : ""}`}>{props.value}</div>
 			<Show when={props.detail}>
-				<KpiDetail>{props.detail}</KpiDetail>
+				<div class={styles.kpiDetail}>{props.detail}</div>
 			</Show>
-		</Kpi>
+		</div>
 	);
 };
 
@@ -396,85 +192,85 @@ export default (props: DashboardProps) => {
 	const bestSuppliesMember = createMemo(() => getBestPartyMember(partyMembers(), "supplies", true));
 
 	return (
-		<Page>
+		<div class={styles.page}>
 			<Show when={props.mode === "solo"}>
-				<Section>
-					<SectionHeader>
+				<section class={styles.section}>
+					<header class={styles.sectionHeader}>
 						<div>
-							<SectionKicker>Hunt Solo</SectionKicker>
-							<SectionTitle>Desempenho individual</SectionTitle>
+							<div class={styles.sectionKicker}>Hunt Solo</div>
+							<h2 class={styles.sectionTitle}>Desempenho individual</h2>
 						</div>
-						<CountBadge>{soloSummary().count} caçadas</CountBadge>
-					</SectionHeader>
+						<div class={styles.countBadge}>{soloSummary().count} caçadas</div>
+					</header>
 
-					<KpiGrid>
+					<div class={styles.kpiGrid}>
 						<KpiCard label="Caçadas" value={String(soloSummary().count)} />
-						<KpiCard label="XP total" value={formatNumber(soloSummary().xp)} color="#d9a441" />
-						<KpiCard label="Loot total" value={formatNumber(soloSummary().loot)} color="#8ba66f" />
-						<KpiCard label="Supplies" value={formatNumber(soloSummary().supplies)} color="#e0a85d" />
+						<KpiCard label="XP total" value={formatNumber(soloSummary().xp)} color="gold" />
+						<KpiCard label="Loot total" value={formatNumber(soloSummary().loot)} color="green" />
+						<KpiCard label="Supplies" value={formatNumber(soloSummary().supplies)} color="orange" />
 						<KpiCard
 							label="Balance"
 							value={formatSignedNumber(soloSummary().balance)}
-							color={soloSummary().balance >= 0 ? "#8ba66f" : "#e05d5d"}
+							color={soloSummary().balance >= 0 ? "green" : "red"}
 						/>
 						<KpiCard
 							label="XP médio"
 							value={formatNumber(getAverageValue(soloSummary().xp, soloSummary().count))}
-							color="#d9a441"
+							color="gold"
 						/>
-					</KpiGrid>
+					</div>
 
 					<Show
 						when={soloSummary().count > 0}
 						fallback={
-							<EmptyState>
+							<div class={styles.emptyState}>
 								Não há relatórios solo válidos no histórico. Importe um Hunt Analyser para preencher esta seção.
-							</EmptyState>
+							</div>
 						}
 					>
-						<ChartGrid>
+						<div class={styles.chartGrid}>
 							<For each={soloMetrics}>
 								{(config) => <MetricChart config={config} values={() => getMetricValues(soloHunts(), config)} />}
 							</For>
-						</ChartGrid>
+						</div>
 					</Show>
-				</Section>
+				</section>
 			</Show>
 
 			<Show when={props.mode === "party"}>
-				<Section>
-					<SectionHeader>
+				<section class={styles.section}>
+					<header class={styles.sectionHeader}>
 						<div>
-							<SectionKicker>Hunt PT</SectionKicker>
-							<SectionTitle>Desempenho em Party Hunt</SectionTitle>
+							<div class={styles.sectionKicker}>Hunt PT</div>
+							<h2 class={styles.sectionTitle}>Desempenho em Party Hunt</h2>
 						</div>
-						<CountBadge>{partySummary().count} party hunts</CountBadge>
-					</SectionHeader>
+						<div class={styles.countBadge}>{partySummary().count} party hunts</div>
+					</header>
 
-					<KpiGrid>
+					<div class={styles.kpiGrid}>
 						<KpiCard label="Party Hunts" value={String(partySummary().count)} />
 						<KpiCard label="Membros" value={String(partyMemberCount())} />
-						<KpiCard label="Loot/h médio" value={formatNumber(partyHourlyAverages().loot)} color="#8ba66f" />
-						<KpiCard label="Supplies/h médio" value={formatNumber(partyHourlyAverages().supplies)} color="#e0a85d" />
-						<KpiCard label="Dano/h médio" value={formatNumber(partyHourlyAverages().damage)} color="#e05d5d" />
-						<KpiCard label="Healing/h médio" value={formatNumber(partyHourlyAverages().healing)} color="#a9c38a" />
-					</KpiGrid>
+						<KpiCard label="Loot/h médio" value={formatNumber(partyHourlyAverages().loot)} color="green" />
+						<KpiCard label="Supplies/h médio" value={formatNumber(partyHourlyAverages().supplies)} color="orange" />
+						<KpiCard label="Dano/h médio" value={formatNumber(partyHourlyAverages().damage)} color="red" />
+						<KpiCard label="Healing/h médio" value={formatNumber(partyHourlyAverages().healing)} color="lightGreen" />
+					</div>
 
 					<Show
 						when={partySummary().count > 0}
 						fallback={
-							<EmptyState>
+							<div class={styles.emptyState}>
 								Não há relatórios de Party Hunt válidos no histórico. Importe uma PT para preencher esta seção.
-							</EmptyState>
+							</div>
 						}
 					>
-						<Ranking>
-							<RankingTitle>Ranking médio dos membros</RankingTitle>
+						<div class={styles.ranking}>
+							<h3 class={styles.rankingTitle}>Ranking médio dos membros</h3>
 							<Show
 								when={partyMembers().length > 0}
-								fallback={<EmptyState>Nenhum membro com métricas individuais foi encontrado.</EmptyState>}
+								fallback={<div class={styles.emptyState}>Nenhum membro com métricas individuais foi encontrado.</div>}
 							>
-								<Table>
+								<table class={styles.table}>
 									<thead>
 										<tr>
 											<th>#</th>
@@ -503,39 +299,39 @@ export default (props: DashboardProps) => {
 											)}
 										</For>
 									</tbody>
-								</Table>
+								</table>
 							</Show>
-						</Ranking>
+						</div>
 
-						<ChartGrid>
+						<div class={styles.chartGrid}>
 							<For each={partyChartMetrics}>
 								{(config) => <MetricChart config={config} values={() => getPartyMetricValues(partyHunts(), config)} />}
 							</For>
-						</ChartGrid>
+						</div>
 
-						<KpiGrid style={{ "margin-top": "1rem" }}>
+						<div class={`${styles.kpiGrid} ${styles.spacedKpiGrid}`}>
 							<KpiCard
 								label="Melhor dano médio"
 								value={topDamageMember()?.name ?? "—"}
 								detail={topDamageMember() ? formatNumber(getMemberAverage(topDamageMember(), "damage")) : undefined}
-								color="#e05d5d"
+								color="red"
 							/>
 							<KpiCard
 								label="Melhor healing médio"
 								value={topHealingMember()?.name ?? "—"}
 								detail={topHealingMember() ? formatNumber(getMemberAverage(topHealingMember(), "healing")) : undefined}
-								color="#a9c38a"
+								color="lightGreen"
 							/>
 							<KpiCard
 								label="Melhor supplies médio"
 								value={bestSuppliesMember()?.name ?? "—"}
 								detail={bestSuppliesMember() ? formatNumber(getMemberAverage(bestSuppliesMember(), "supplies")) : undefined}
-								color="#e0a85d"
+								color="orange"
 							/>
-						</KpiGrid>
+						</div>
 					</Show>
-				</Section>
+				</section>
 			</Show>
-		</Page>
+		</div>
 	);
 };
