@@ -121,18 +121,3 @@ export const navButton = style({
 		},
 	},
 });
-
-export const main = style({
-	flex: 1,
-	minHeight: 0,
-	display: "flex",
-	flexDirection: "column",
-	alignItems: "center",
-	justifyContent: "flex-start",
-	gap: "1.5rem",
-	width: "100%",
-	padding: "2rem 1rem 4rem",
-	overflowX: "hidden",
-	overflowY: "auto",
-	scrollbarGutter: "stable",
-});

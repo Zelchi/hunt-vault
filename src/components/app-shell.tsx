@@ -1,7 +1,9 @@
-import { createEffect, createSignal, onCleanup } from "solid-js";
+import { createEffect, createSignal, lazy, onCleanup } from "solid-js";
 import { SwordIcon } from "@/components/icons";
 import * as styles from "@/styles/app-shell.css";
 import type { AppShellProps } from "@/types/components";
+
+const CustomScrollbar = lazy(() => import("@/components/custom-scrollbar"));
 
 export default (props: AppShellProps) => {
 	const [headerVisible, setHeaderVisible] = createSignal(true);
@@ -102,9 +104,7 @@ export default (props: AppShellProps) => {
 					</button>
 				</nav>
 			</header>
-			<main class={styles.main} onScroll={handleMainScroll}>
-				{props.children}
-			</main>
+			<CustomScrollbar onScroll={handleMainScroll}>{props.children}</CustomScrollbar>
 		</div>
 	);
 };

@@ -4,9 +4,9 @@ import type { HuntMetric, HuntRecord } from "@/types/hunt-common";
 import type { ParsedHuntParty, PartyMember } from "@/types/hunt-party";
 import type { ParsedHuntSolo } from "@/types/hunt-solo";
 
-export type MetricKey = "xp" | "loot" | "supplies" | "balance" | "damage" | "healing";
+type MetricKey = "xp" | "loot" | "supplies" | "balance" | "damage" | "healing";
 
-export type MetricConfig = {
+type MetricConfig = {
 	key: MetricKey;
 	title: string;
 	description: string;
@@ -14,21 +14,21 @@ export type MetricConfig = {
 	color: string;
 };
 
-export type ParsedSoloHunt = {
+type ParsedSoloHunt = {
 	record: HuntRecord;
 	parsed: ParsedHuntSolo;
 };
 
-export type ParsedPartyHunt = {
+type ParsedPartyHunt = {
 	record: HuntRecord;
 	parsed: ParsedHuntParty;
 };
 
-export type HuntWithMetrics = {
+type HuntWithMetrics = {
 	parsed: { metrics: HuntMetric[] };
 };
 
-export type HuntSummary = {
+type HuntSummary = {
 	count: number;
 	xp: number;
 	loot: number;
@@ -38,7 +38,7 @@ export type HuntSummary = {
 	healing: number;
 };
 
-export type MemberSummary = {
+type MemberSummary = {
 	name: string;
 	hunts: number;
 	durationHours: number;
@@ -48,20 +48,20 @@ export type MemberSummary = {
 	normalizedProfit: number;
 };
 
-export type MemberAverageMetric = "damage" | "healing" | "supplies" | "profit";
+type MemberAverageMetric = "damage" | "healing" | "supplies" | "profit";
 
-export type PartyRanking = {
+type PartyRanking = {
 	member: PartyMember;
 	metric: HuntMetric;
 };
 
-export type PartyRankings = {
+type PartyRankings = {
 	supplies: PartyRanking | null;
 	damage: PartyRanking | null;
 	healing: PartyRanking | null;
 };
 
-export const soloMetrics: MetricConfig[] = [
+const soloMetrics: MetricConfig[] = [
 	{
 		key: "xp",
 		title: "Experiência",
@@ -106,7 +106,7 @@ export const soloMetrics: MetricConfig[] = [
 	},
 ];
 
-export const partyMetrics: MetricConfig[] = [
+const partyMetrics: MetricConfig[] = [
 	{
 		key: "loot",
 		title: "Loot da PT",
@@ -137,9 +137,9 @@ export const partyMetrics: MetricConfig[] = [
 	},
 ];
 
-export const partyChartMetrics = partyMetrics.filter((config) => config.key !== "healing");
+const partyChartMetrics = partyMetrics.filter((config) => config.key !== "healing");
 
-export const normalizeMetricLabel = (label: string) => {
+const normalizeMetricLabel = (label: string) => {
 	return label
 		.toLowerCase()
 		.normalize("NFD")
@@ -147,7 +147,7 @@ export const normalizeMetricLabel = (label: string) => {
 		.replace(/[^a-z0-9]+/g, "");
 };
 
-export const parseNumericValue = (value: string): number => {
+const parseNumericValue = (value: string): number => {
 	const raw = value.trim().replace(/\s/g, "");
 	const sign = raw.startsWith("-") ? -1 : 1;
 	const unsigned = raw.replace(/[^\d.,]/g, "");
@@ -170,17 +170,17 @@ export const parseNumericValue = (value: string): number => {
 	return Number.isFinite(parsed) ? sign * parsed : 0;
 };
 
-export const findMetricValue = (metrics: HuntMetric[], aliases: readonly string[]): number | undefined => {
+const findMetricValue = (metrics: HuntMetric[], aliases: readonly string[]): number | undefined => {
 	const normalizedAliases = aliases.map(normalizeMetricLabel);
 	const metric = metrics.find((item) => normalizedAliases.includes(normalizeMetricLabel(item.label)));
 	return metric ? parseNumericValue(metric.value) : undefined;
 };
 
-export const metricValue = (metrics: HuntMetric[], aliases: readonly string[]) => {
+const metricValue = (metrics: HuntMetric[], aliases: readonly string[]) => {
 	return findMetricValue(metrics, aliases) ?? 0;
 };
 
-export const parseSoloHunts = (history: HuntRecord[]): ParsedSoloHunt[] => {
+const parseSoloHunts = (history: HuntRecord[]): ParsedSoloHunt[] => {
 	return history
 		.map((record) => {
 			try {
@@ -197,7 +197,7 @@ export const parseSoloHunts = (history: HuntRecord[]): ParsedSoloHunt[] => {
 		.sort((a, b) => new Date(a.record.createdAt).getTime() - new Date(b.record.createdAt).getTime());
 };
 
-export const parsePartyHunts = (history: HuntRecord[]): ParsedPartyHunt[] => {
+const parsePartyHunts = (history: HuntRecord[]): ParsedPartyHunt[] => {
 	return history
 		.map((record) => {
 			try {
@@ -214,7 +214,7 @@ export const parsePartyHunts = (history: HuntRecord[]): ParsedPartyHunt[] => {
 		.sort((a, b) => new Date(a.record.createdAt).getTime() - new Date(b.record.createdAt).getTime());
 };
 
-export const summarizeHunts = (hunts: HuntWithMetrics[], configs: MetricConfig[]): HuntSummary => {
+const summarizeHunts = (hunts: HuntWithMetrics[], configs: MetricConfig[]): HuntSummary => {
 	const getTotal = (key: MetricKey) => {
 		const config = configs.find((item) => item.key === key) ?? soloMetrics.find((item) => item.key === key);
 		return config ? hunts.reduce((total, hunt) => total + metricValue(hunt.parsed.metrics, config.aliases), 0) : 0;
@@ -231,11 +231,11 @@ export const summarizeHunts = (hunts: HuntWithMetrics[], configs: MetricConfig[]
 	};
 };
 
-export const getMetricValues = (hunts: HuntWithMetrics[], config: MetricConfig) => {
+const getMetricValues = (hunts: HuntWithMetrics[], config: MetricConfig) => {
 	return hunts.map((hunt) => metricValue(hunt.parsed.metrics, config.aliases));
 };
 
-export const getPartyMetricValue = (hunt: ParsedPartyHunt, config: MetricConfig) => {
+const getPartyMetricValue = (hunt: ParsedPartyHunt, config: MetricConfig) => {
 	if (config.key === "damage" || config.key === "healing") {
 		return hunt.parsed.members.reduce((total, member) => total + metricValue(member.metrics, config.aliases), 0);
 	}
@@ -248,15 +248,15 @@ export const getPartyMetricValue = (hunt: ParsedPartyHunt, config: MetricConfig)
 	return hunt.parsed.members.reduce((total, member) => total + metricValue(member.metrics, config.aliases), 0);
 };
 
-export const getPartyMetricValues = (hunts: ParsedPartyHunt[], config: MetricConfig) => {
+const getPartyMetricValues = (hunts: ParsedPartyHunt[], config: MetricConfig) => {
 	return hunts.map((hunt) => getPartyMetricValue(hunt, config));
 };
 
-export const normalizeValueToHour = (value: number, durationSeconds: number) => {
+const normalizeValueToHour = (value: number, durationSeconds: number) => {
 	return value * (3600 / Math.max(durationSeconds, 1));
 };
 
-export const aggregatePartyMembers = (hunts: ParsedPartyHunt[]): MemberSummary[] => {
+const aggregatePartyMembers = (hunts: ParsedPartyHunt[]): MemberSummary[] => {
 	const members = new Map<string, MemberSummary>();
 
 	for (const hunt of hunts) {
@@ -298,7 +298,7 @@ export const aggregatePartyMembers = (hunts: ParsedPartyHunt[]): MemberSummary[]
 	return Array.from(members.values()).sort((a, b) => getMemberAverage(b, "damage") - getMemberAverage(a, "damage"));
 };
 
-export const calculatePartySummary = (hunts: ParsedPartyHunt[]): HuntSummary => {
+const calculatePartySummary = (hunts: ParsedPartyHunt[]): HuntSummary => {
 	const summary = summarizeHunts(hunts, partyMetrics);
 	const damageConfig = partyMetrics.find((config) => config.key === "damage");
 	const healingConfig = partyMetrics.find((config) => config.key === "healing");
@@ -310,7 +310,7 @@ export const calculatePartySummary = (hunts: ParsedPartyHunt[]): HuntSummary => 
 	};
 };
 
-export const calculatePartyHourlyAverages = (hunts: ParsedPartyHunt[]) => {
+const calculatePartyHourlyAverages = (hunts: ParsedPartyHunt[]) => {
 	const average = (key: MetricKey) => {
 		const config = partyMetrics.find((item) => item.key === key);
 		if (!config || hunts.length === 0) {
@@ -333,15 +333,15 @@ export const calculatePartyHourlyAverages = (hunts: ParsedPartyHunt[]) => {
 	};
 };
 
-export const countPartyMembers = (hunts: ParsedPartyHunt[]) => {
+const countPartyMembers = (hunts: ParsedPartyHunt[]) => {
 	return new Set(hunts.flatMap((hunt) => hunt.parsed.members.map((member) => member.name.trim().toLowerCase()))).size;
 };
 
-export const getAverageValue = (total: number, count: number) => {
+const getAverageValue = (total: number, count: number) => {
 	return count > 0 ? total / count : 0;
 };
 
-export const getMemberAverage = (member: MemberSummary | undefined, metric: MemberAverageMetric) => {
+const getMemberAverage = (member: MemberSummary | undefined, metric: MemberAverageMetric) => {
 	if (!member) {
 		return 0;
 	}
@@ -358,14 +358,14 @@ export const getMemberAverage = (member: MemberSummary | undefined, metric: Memb
 	return getAverageValue(total, member.hunts);
 };
 
-export const getBestPartyMember = (members: MemberSummary[], metric: MemberAverageMetric, ascending = false) => {
+const getBestPartyMember = (members: MemberSummary[], metric: MemberAverageMetric, ascending = false) => {
 	return [...members].sort((a, b) => {
 		const difference = getMemberAverage(a, metric) - getMemberAverage(b, metric);
 		return ascending ? difference : -difference;
 	})[0];
 };
 
-export const getPartyRankings = (party: ParsedHuntParty | null): PartyRankings | null => {
+const getPartyRankings = (party: ParsedHuntParty | null): PartyRankings | null => {
 	if (!party) {
 		return null;
 	}
@@ -393,10 +393,47 @@ export const getPartyRankings = (party: ParsedHuntParty | null): PartyRankings |
 	};
 };
 
-export const formatNumber = (value: number) => {
+const formatNumber = (value: number) => {
 	return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Math.round(value));
 };
 
-export const formatSignedNumber = (value: number) => {
+const formatSignedNumber = (value: number) => {
 	return `${value > 0 ? "+" : ""}${formatNumber(value)}`;
+};
+
+export {
+	aggregatePartyMembers,
+	calculatePartyHourlyAverages,
+	calculatePartySummary,
+	countPartyMembers,
+	findMetricValue,
+	formatNumber,
+	formatSignedNumber,
+	getAverageValue,
+	getBestPartyMember,
+	getMemberAverage,
+	getMetricValues,
+	getPartyMetricValue,
+	getPartyMetricValues,
+	getPartyRankings,
+	type HuntSummary,
+	type HuntWithMetrics,
+	type MemberAverageMetric,
+	type MemberSummary,
+	type MetricConfig,
+	type MetricKey,
+	metricValue,
+	normalizeMetricLabel,
+	normalizeValueToHour,
+	type ParsedPartyHunt,
+	type ParsedSoloHunt,
+	type PartyRanking,
+	type PartyRankings,
+	parseNumericValue,
+	parsePartyHunts,
+	parseSoloHunts,
+	partyChartMetrics,
+	partyMetrics,
+	soloMetrics,
+	summarizeHunts,
 };

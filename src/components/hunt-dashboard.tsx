@@ -2,30 +2,12 @@ import type { Accessor } from "solid-js";
 import { createEffect, createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
-import {
-	aggregatePartyMembers,
-	calculatePartyHourlyAverages,
-	calculatePartySummary,
-	countPartyMembers,
-	formatNumber,
-	formatSignedNumber,
-	getAverageValue,
-	getBestPartyMember,
-	getMemberAverage,
-	getMetricValues,
-	getPartyMetricValues,
-	type MetricConfig,
-	parsePartyHunts,
-	parseSoloHunts,
-	partyChartMetrics,
-	soloMetrics,
-	summarizeHunts,
-} from "@/lib/hunt-dashboard";
+import * as dashboard from "@/lib/hunt-dashboard";
 import * as styles from "@/styles/hunt-dashboard.css";
 import type { DashboardProps } from "@/types/components";
 
 type MetricChartProps = {
-	config: MetricConfig;
+	config: dashboard.MetricConfig;
 	values: Accessor<number[]>;
 };
 
@@ -175,16 +157,16 @@ const KpiCard = (props: KpiCardProps) => {
 };
 
 export default (props: DashboardProps) => {
-	const soloHunts = createMemo(() => parseSoloHunts(props.history));
-	const partyHunts = createMemo(() => parsePartyHunts(props.history));
-	const soloSummary = createMemo(() => summarizeHunts(soloHunts(), soloMetrics));
-	const partySummary = createMemo(() => calculatePartySummary(partyHunts()));
-	const partyHourlyAverages = createMemo(() => calculatePartyHourlyAverages(partyHunts()));
-	const partyMembers = createMemo(() => aggregatePartyMembers(partyHunts()));
-	const partyMemberCount = createMemo(() => countPartyMembers(partyHunts()));
-	const topDamageMember = createMemo(() => getBestPartyMember(partyMembers(), "damage"));
-	const topHealingMember = createMemo(() => getBestPartyMember(partyMembers(), "healing"));
-	const bestSuppliesMember = createMemo(() => getBestPartyMember(partyMembers(), "supplies", true));
+	const soloHunts = createMemo(() => dashboard.parseSoloHunts(props.history));
+	const partyHunts = createMemo(() => dashboard.parsePartyHunts(props.history));
+	const soloSummary = createMemo(() => dashboard.summarizeHunts(soloHunts(), dashboard.soloMetrics));
+	const partySummary = createMemo(() => dashboard.calculatePartySummary(partyHunts()));
+	const partyHourlyAverages = createMemo(() => dashboard.calculatePartyHourlyAverages(partyHunts()));
+	const partyMembers = createMemo(() => dashboard.aggregatePartyMembers(partyHunts()));
+	const partyMemberCount = createMemo(() => dashboard.countPartyMembers(partyHunts()));
+	const topDamageMember = createMemo(() => dashboard.getBestPartyMember(partyMembers(), "damage"));
+	const topHealingMember = createMemo(() => dashboard.getBestPartyMember(partyMembers(), "healing"));
+	const bestSuppliesMember = createMemo(() => dashboard.getBestPartyMember(partyMembers(), "supplies", true));
 
 	return (
 		<div class={styles.page}>
@@ -200,17 +182,17 @@ export default (props: DashboardProps) => {
 
 					<div class={styles.kpiGrid}>
 						<KpiCard label="Caçadas" value={String(soloSummary().count)} />
-						<KpiCard label="XP total" value={formatNumber(soloSummary().xp)} color="gold" />
-						<KpiCard label="Loot total" value={formatNumber(soloSummary().loot)} color="green" />
-						<KpiCard label="Supplies" value={formatNumber(soloSummary().supplies)} color="orange" />
+						<KpiCard label="XP total" value={dashboard.formatNumber(soloSummary().xp)} color="gold" />
+						<KpiCard label="Loot total" value={dashboard.formatNumber(soloSummary().loot)} color="green" />
+						<KpiCard label="Supplies" value={dashboard.formatNumber(soloSummary().supplies)} color="orange" />
 						<KpiCard
 							label="Balance"
-							value={formatSignedNumber(soloSummary().balance)}
+							value={dashboard.formatSignedNumber(soloSummary().balance)}
 							color={soloSummary().balance >= 0 ? "green" : "red"}
 						/>
 						<KpiCard
 							label="XP médio"
-							value={formatNumber(getAverageValue(soloSummary().xp, soloSummary().count))}
+							value={dashboard.formatNumber(dashboard.getAverageValue(soloSummary().xp, soloSummary().count))}
 							color="gold"
 						/>
 					</div>
@@ -224,8 +206,8 @@ export default (props: DashboardProps) => {
 						}
 					>
 						<div class={styles.chartGrid}>
-							<For each={soloMetrics}>
-								{(config) => <MetricChart config={config} values={() => getMetricValues(soloHunts(), config)} />}
+							<For each={dashboard.soloMetrics}>
+								{(config) => <MetricChart config={config} values={() => dashboard.getMetricValues(soloHunts(), config)} />}
 							</For>
 						</div>
 					</Show>
@@ -242,33 +224,43 @@ export default (props: DashboardProps) => {
 						<div class={styles.countBadge}>{partySummary().count} party hunts</div>
 					</header>
 
-
-
 					<div class={styles.kpiGrid}>
 						<KpiCard label="Party Hunts" value={String(partySummary().count)} />
 						<KpiCard label="Membros" value={String(partyMemberCount())} />
-						<KpiCard label="Loot/h médio" value={formatNumber(partyHourlyAverages().loot)} color="green" />
-						<KpiCard label="Supplies/h médio" value={formatNumber(partyHourlyAverages().supplies)} color="orange" />
-						<KpiCard label="Dano/h médio" value={formatNumber(partyHourlyAverages().damage)} color="red" />
-						<KpiCard label="Healing/h médio" value={formatNumber(partyHourlyAverages().healing)} color="lightGreen" />
+						<KpiCard label="Loot/h médio" value={dashboard.formatNumber(partyHourlyAverages().loot)} color="green" />
+						<KpiCard label="Supplies/h médio" value={dashboard.formatNumber(partyHourlyAverages().supplies)} color="orange" />
+						<KpiCard label="Dano/h médio" value={dashboard.formatNumber(partyHourlyAverages().damage)} color="red" />
+						<KpiCard label="Healing/h médio" value={dashboard.formatNumber(partyHourlyAverages().healing)} color="lightGreen" />
 					</div>
 					<div class={`${styles.kpiGrid} ${styles.spacedKpiGrid}`}>
 						<KpiCard
 							label="Melhor dano médio"
 							value={topDamageMember()?.name ?? "—"}
-							detail={topDamageMember() ? formatNumber(getMemberAverage(topDamageMember(), "damage")) : undefined}
+							detail={
+								topDamageMember()
+									? dashboard.formatNumber(dashboard.getMemberAverage(topDamageMember(), "damage"))
+									: undefined
+							}
 							color="red"
 						/>
 						<KpiCard
 							label="Melhor healing médio"
 							value={topHealingMember()?.name ?? "—"}
-							detail={topHealingMember() ? formatNumber(getMemberAverage(topHealingMember(), "healing")) : undefined}
+							detail={
+								topHealingMember()
+									? dashboard.formatNumber(dashboard.getMemberAverage(topHealingMember(), "healing"))
+									: undefined
+							}
 							color="lightGreen"
 						/>
 						<KpiCard
 							label="Melhor supplies médio"
 							value={bestSuppliesMember()?.name ?? "—"}
-							detail={bestSuppliesMember() ? formatNumber(getMemberAverage(bestSuppliesMember(), "supplies")) : undefined}
+							detail={
+								bestSuppliesMember()
+									? dashboard.formatNumber(dashboard.getMemberAverage(bestSuppliesMember(), "supplies"))
+									: undefined
+							}
 							color="orange"
 						/>
 					</div>
@@ -307,10 +299,10 @@ export default (props: DashboardProps) => {
 													<td>{member.name}</td>
 													<td>{member.hunts}</td>
 													<td>{member.durationHours.toFixed(2)}</td>
-													<td>{formatNumber(getMemberAverage(member, "damage"))}</td>
-													<td>{formatNumber(getMemberAverage(member, "healing"))}</td>
-													<td>{formatNumber(getMemberAverage(member, "supplies"))}</td>
-													<td>{formatSignedNumber(getMemberAverage(member, "profit"))}</td>
+													<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "damage"))}</td>
+													<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "healing"))}</td>
+													<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "supplies"))}</td>
+													<td>{dashboard.formatSignedNumber(dashboard.getMemberAverage(member, "profit"))}</td>
 												</tr>
 											)}
 										</For>
@@ -320,8 +312,10 @@ export default (props: DashboardProps) => {
 						</div>
 
 						<div class={styles.chartGrid}>
-							<For each={partyChartMetrics}>
-								{(config) => <MetricChart config={config} values={() => getPartyMetricValues(partyHunts(), config)} />}
+							<For each={dashboard.partyChartMetrics}>
+								{(config) => (
+									<MetricChart config={config} values={() => dashboard.getPartyMetricValues(partyHunts(), config)} />
+								)}
 							</For>
 						</div>
 					</Show>

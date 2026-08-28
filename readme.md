@@ -7,7 +7,6 @@ O projeto funciona diretamente no navegador, sem backend. Os dados ficam salvos 
 ## Funcionalidades
 
 - Importação de relatórios pelo clipboard.
-- Visualização detalhada de cada relatório.
 - Gráficos de XP, loot, supplies, dano e healing usando uPlot.
 - Normalização das métricas para valores por hora.
 - Ranking médio dos membros da party.

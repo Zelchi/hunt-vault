@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, For, lazy, Show } from "solid-js";
 import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/icons";
-import { getPartyRankings } from "@/lib/hunt-dashboard";
+import * as dashboard from "@/lib/hunt-dashboard";
 import { detectHuntReportType } from "@/lib/hunt-detector";
 import { parseHuntPartyReport } from "@/lib/hunt-party";
 import { formatCreatedAt, parseHuntSoloReport } from "@/lib/hunt-solo";
@@ -45,7 +45,7 @@ export default (props: HuntViewerProps) => {
 		return activeCategory() === "party" && active ? parseHuntPartyReport(active.record.rawText) : null;
 	});
 
-	const partyRankings = createMemo(() => getPartyRankings(activeParty()));
+	const partyRankings = createMemo(() => dashboard.getPartyRankings(activeParty()));
 
 	const pendingDelete = createMemo(() => {
 		const id = pendingDeleteId();
