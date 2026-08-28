@@ -2,6 +2,7 @@ import { createSignal, lazy, onCleanup, onMount } from "solid-js";
 import { Toaster, toast } from "solid-toast";
 
 import { database } from "@/lib/database";
+import { hasDuplicateHunt } from "@/lib/hunt-dedup";
 import { detectHuntReportType } from "@/lib/hunt-detector";
 import { validateHuntPartyReport } from "@/lib/hunt-party";
 import { validateHuntSoloReport } from "@/lib/hunt-solo";
@@ -9,8 +10,8 @@ import type { HuntRecord, View } from "@/types/hunt-common";
 
 const AppShell = lazy(() => import("@/components/app-shell"));
 const HuntImporter = lazy(() => import("@/components/hunt-importer"));
-const HuntViewer = lazy(() => import("@/components/hunt-viewer"));
 const HuntDashboard = lazy(() => import("@/components/hunt-dashboard"));
+const HuntViewer = lazy(() => import("@/components/hunt-viewer"));
 
 export default () => {
 	const [clipboardText, setClipboardText] = createSignal("");
@@ -131,6 +132,12 @@ export default () => {
 		setSaving(true);
 
 		try {
+			const existingHunts = await database.hunts.toArray();
+			if (hasDuplicateHunt(existingHunts, rawText)) {
+				toast.error("Esta caçada já foi importada anteriormente.");
+				return;
+			}
+
 			const record: HuntRecord = {
 				id: crypto.randomUUID(),
 				createdAt: new Date().toISOString(),
