@@ -6,6 +6,7 @@ import { hasDuplicateHunt } from "@/lib/hunt-dedup";
 import { detectHuntReportType } from "@/lib/hunt-detector";
 import { validateHuntPartyReport } from "@/lib/hunt-party";
 import { validateHuntSoloReport } from "@/lib/hunt-solo";
+import * as toastStyles from "@/styles/toast.css";
 import type { HuntRecord, View } from "@/types/hunt-common";
 
 const AppShell = lazy(() => import("@/components/app-shell"));
@@ -217,7 +218,11 @@ export default () => {
 
 	return (
 		<>
-			<Toaster position="bottom-right" />
+			<Toaster
+				position="bottom-right"
+				gutter={10}
+				toastOptions={{ className: toastStyles.toast, style: toastStyles.toastInlineStyle }}
+			/>
 			<AppShell view={view()} onViewChange={handleViewChange}>
 				{view() === "import" ? (
 					<HuntImporter
