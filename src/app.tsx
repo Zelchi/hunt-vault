@@ -13,13 +13,23 @@ const HuntImporter = lazy(() => import("@/components/hunt-importer"));
 const HuntDashboard = lazy(() => import("@/components/hunt-dashboard"));
 const HuntViewer = lazy(() => import("@/components/hunt-viewer"));
 const StorageErrorModal = lazy(() => import("@/components/error-modal"));
+const lastViewStorageKey = "hunt-vault:last-view";
+
+const getStoredView = (): View => {
+	try {
+		const storedView = localStorage.getItem(lastViewStorageKey);
+		return storedView === "solo" || storedView === "party" || storedView === "import" ? storedView : "import";
+	} catch {
+		return "import";
+	}
+};
 
 export default () => {
 	const [clipboardText, setClipboardText] = createSignal("");
 	const [readingClipboard, setReadingClipboard] = createSignal(false);
 	const [saving, setSaving] = createSignal(false);
 	const [deleting, setDeleting] = createSignal(false);
-	const [view, setView] = createSignal<View>("import");
+	const [view, setView] = createSignal<View>(getStoredView());
 	const [history, setHistory] = createSignal<HuntRecord[]>([]);
 	const [loadingHistory, setLoadingHistory] = createSignal(false);
 	const [storageError, setStorageError] = createSignal(false);
@@ -40,6 +50,9 @@ export default () => {
 
 	onMount(() => {
 		void checkDatabaseAccess();
+		if (view() !== "import") {
+			void loadHistory();
+		}
 
 		const handleButtonClick = (event: MouseEvent) => {
 			if (!(event.target instanceof Element) || !event.target.closest("button")) {
@@ -75,6 +88,8 @@ export default () => {
 
 	const handleViewChange = (nextView: View) => {
 		setView(nextView);
+
+		localStorage.setItem(lastViewStorageKey, nextView);
 
 		if (nextView === "solo" || nextView === "party") {
 			void loadHistory();
