@@ -247,6 +247,8 @@ export default (props: DashboardProps) => {
 						<div class={styles.countBadge}>{partySummary().count} party hunts</div>
 					</header>
 
+
+
 					<div class={styles.kpiGrid}>
 						<KpiCard label="Party Hunts" value={String(partySummary().count)} />
 						<KpiCard label="Membros" value={String(partyMemberCount())} />
@@ -255,7 +257,26 @@ export default (props: DashboardProps) => {
 						<KpiCard label="Dano/h médio" value={formatNumber(partyHourlyAverages().damage)} color="red" />
 						<KpiCard label="Healing/h médio" value={formatNumber(partyHourlyAverages().healing)} color="lightGreen" />
 					</div>
-
+					<div class={`${styles.kpiGrid} ${styles.spacedKpiGrid}`}>
+						<KpiCard
+							label="Melhor dano médio"
+							value={topDamageMember()?.name ?? "—"}
+							detail={topDamageMember() ? formatNumber(getMemberAverage(topDamageMember(), "damage")) : undefined}
+							color="red"
+						/>
+						<KpiCard
+							label="Melhor healing médio"
+							value={topHealingMember()?.name ?? "—"}
+							detail={topHealingMember() ? formatNumber(getMemberAverage(topHealingMember(), "healing")) : undefined}
+							color="lightGreen"
+						/>
+						<KpiCard
+							label="Melhor supplies médio"
+							value={bestSuppliesMember()?.name ?? "—"}
+							detail={bestSuppliesMember() ? formatNumber(getMemberAverage(bestSuppliesMember(), "supplies")) : undefined}
+							color="orange"
+						/>
+					</div>
 					<Show
 						when={partySummary().count > 0}
 						fallback={
@@ -307,27 +328,6 @@ export default (props: DashboardProps) => {
 							<For each={partyChartMetrics}>
 								{(config) => <MetricChart config={config} values={() => getPartyMetricValues(partyHunts(), config)} />}
 							</For>
-						</div>
-
-						<div class={`${styles.kpiGrid} ${styles.spacedKpiGrid}`}>
-							<KpiCard
-								label="Melhor dano médio"
-								value={topDamageMember()?.name ?? "—"}
-								detail={topDamageMember() ? formatNumber(getMemberAverage(topDamageMember(), "damage")) : undefined}
-								color="red"
-							/>
-							<KpiCard
-								label="Melhor healing médio"
-								value={topHealingMember()?.name ?? "—"}
-								detail={topHealingMember() ? formatNumber(getMemberAverage(topHealingMember(), "healing")) : undefined}
-								color="lightGreen"
-							/>
-							<KpiCard
-								label="Melhor supplies médio"
-								value={bestSuppliesMember()?.name ?? "—"}
-								detail={bestSuppliesMember() ? formatNumber(getMemberAverage(bestSuppliesMember(), "supplies")) : undefined}
-								color="orange"
-							/>
 						</div>
 					</Show>
 				</section>

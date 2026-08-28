@@ -12,6 +12,7 @@ const AppShell = lazy(() => import("@/components/app-shell"));
 const HuntImporter = lazy(() => import("@/components/hunt-importer"));
 const HuntDashboard = lazy(() => import("@/components/hunt-dashboard"));
 const HuntViewer = lazy(() => import("@/components/hunt-viewer"));
+const StorageErrorModal = lazy(() => import("@/components/error-modal"));
 
 export default () => {
 	const [clipboardText, setClipboardText] = createSignal("");
@@ -21,9 +22,25 @@ export default () => {
 	const [view, setView] = createSignal<View>("import");
 	const [history, setHistory] = createSignal<HuntRecord[]>([]);
 	const [loadingHistory, setLoadingHistory] = createSignal(false);
+	const [storageError, setStorageError] = createSignal(false);
 	const clickSound = new Audio("/click.mp3");
 
+	const checkDatabaseAccess = async () => {
+		try {
+			if (typeof indexedDB === "undefined") {
+				throw new Error("IndexedDB não está disponível neste navegador.");
+			}
+
+			await database.open();
+			await database.hunts.count();
+		} catch {
+			setStorageError(true);
+		}
+	};
+
 	onMount(() => {
+		void checkDatabaseAccess();
+
 		const handleButtonClick = (event: MouseEvent) => {
 			if (!(event.target instanceof Element) || !event.target.closest("button")) {
 				return;
@@ -215,6 +232,7 @@ export default () => {
 					</>
 				)}
 			</AppShell>
+			<StorageErrorModal open={storageError()} onClose={() => setStorageError(false)} />
 		</>
 	);
 };

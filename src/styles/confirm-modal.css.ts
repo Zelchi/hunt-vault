@@ -100,6 +100,11 @@ export const actions = style({
 	},
 });
 
+export const singleAction = style({
+	display: "flex",
+	justifyContent: "flex-end",
+});
+
 const actionButton = style({
 	padding: "0.75rem 1rem",
 	border: "2px solid",
