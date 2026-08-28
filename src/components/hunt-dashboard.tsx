@@ -150,11 +150,6 @@ const MetricChart = (props: MetricChartProps) => {
 					<div class={styles.chartEmpty}>Importe uma caçada válida para visualizar este gráfico.</div>
 				</Show>
 			</div>
-			<Show when={props.values().length === 1}>
-				<div class={styles.chartNote}>
-					1 caçada registrada: o ponto está centralizado. A linha aparece a partir da segunda caçada.
-				</div>
-			</Show>
 		</article>
 	);
 };
