@@ -1,5 +1,5 @@
-import type { JSX } from "solid-js";
 import { style } from "@vanilla-extract/css";
+import type { JSX } from "solid-js";
 
 export const toast = style({
 	fontFamily: '"Courier New", ui-monospace, SFMono-Regular, Consolas, monospace',
@@ -12,9 +12,9 @@ export const toast = style({
 export const toastInlineStyle: JSX.CSSProperties = {
 	background: "#121816",
 	border: "1px solid #2b4638",
-	borderRadius: 0,
-	boxShadow: "4px 4px 0 #050706",
+	"border-radius": 0,
+	"box-shadow": "4px 4px 0 #050706",
 	color: "#f4f1ea",
-	maxWidth: "min(22rem, calc(100vw - 2rem))",
+	"max-width": "min(22rem, calc(100vw - 2rem))",
 	padding: "0.75rem 0.85rem",
 };

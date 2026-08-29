@@ -26,3 +26,9 @@ gitignore
 # System Files
 .DS_Store
 Thumbs.db
+
+# API
+data/
+.env
+.gocache/
+.gopath/

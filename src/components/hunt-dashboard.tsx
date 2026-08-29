@@ -234,7 +234,7 @@ export default (props: DashboardProps) => {
 					</div>
 					<div class={`${styles.kpiGrid} ${styles.spacedKpiGrid}`}>
 						<KpiCard
-							label="Melhor dano médio"
+							label="Maior dano médio"
 							value={topDamageMember()?.name ?? "—"}
 							detail={
 								topDamageMember()
@@ -244,7 +244,7 @@ export default (props: DashboardProps) => {
 							color="red"
 						/>
 						<KpiCard
-							label="Melhor healing médio"
+							label="Maior healing médio"
 							value={topHealingMember()?.name ?? "—"}
 							detail={
 								topHealingMember()
@@ -254,7 +254,7 @@ export default (props: DashboardProps) => {
 							color="lightGreen"
 						/>
 						<KpiCard
-							label="Melhor supplies médio"
+							label="Menor supplies médio"
 							value={bestSuppliesMember()?.name ?? "—"}
 							detail={
 								bestSuppliesMember()

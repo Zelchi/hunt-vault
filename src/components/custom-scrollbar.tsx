@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { createSignal, type JSX, onCleanup, onMount } from "solid-js";
 import * as styles from "@/styles/custom-scrollbar.css";
 
 type CustomScrollbarProps = {
