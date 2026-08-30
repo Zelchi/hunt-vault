@@ -6,10 +6,10 @@ import type { ParsedHuntParty } from "@/types/hunt-party";
 
 const defaultSyncAPIURL = import.meta.env.DEV ? "http://localhost:8080" : `${window.location.origin}/api`;
 const syncAPIURL = (import.meta.env.VITE_SYNC_API_URL?.trim() || defaultSyncAPIURL).replace(/\/+$/, "");
-const syncAPIKeyStorageKey = "hunt-vault:sync-api-key";
 const cursorStateKey = "party-hunts-cursor";
 const maxPushBatch = 500;
 const listeners = new Set<() => void>();
+let sessionSyncAPIKey = "";
 let activeSync: Promise<void> | undefined;
 let syncRequested = false;
 
@@ -32,34 +32,24 @@ type PullResponse = {
 	has_more: boolean;
 };
 
-const getStoredSyncAPIKey = () => {
-	try {
-		return localStorage.getItem(syncAPIKeyStorageKey)?.trim() || "";
-	} catch {
-		return "";
-	}
-};
+const getSessionSyncAPIKey = () => sessionSyncAPIKey;
 
-const removeStoredSyncAPIKey = () => {
-	localStorage.removeItem(syncAPIKeyStorageKey);
+const removeSessionSyncAPIKey = () => {
+	sessionSyncAPIKey = "";
 };
 
 const saveSyncAPIKey = (apiKey: string) => {
-	try {
-		localStorage.setItem(syncAPIKeyStorageKey, apiKey.trim());
-		return true;
-	} catch {
-		return false;
-	}
+	sessionSyncAPIKey = apiKey.trim();
+	return true;
 };
 
 const hasStoredSyncAPIKey = () => {
-	const apiKey = getStoredSyncAPIKey();
+	const apiKey = getSessionSyncAPIKey();
 	if (apiKey.length === 0) {
 		return false;
 	}
 	if (apiKey.length < 32) {
-		removeStoredSyncAPIKey();
+		removeSessionSyncAPIKey();
 		return false;
 	}
 	return true;
@@ -67,7 +57,7 @@ const hasStoredSyncAPIKey = () => {
 
 const removeRejectedSyncAPIKey = (response: Response, sentAPIKey: string) => {
 	if (sentAPIKey && (response.status === 401 || response.status === 403)) {
-		removeStoredSyncAPIKey();
+		removeSessionSyncAPIKey();
 	}
 };
 
@@ -92,7 +82,7 @@ const createPartyHuntDeleteMutation = (fingerprint: string): HuntSyncMutation =>
 });
 
 const requestJSON = async <Response>(path: string, init?: RequestInit): Promise<Response> => {
-	const apiKey = getStoredSyncAPIKey();
+	const apiKey = getSessionSyncAPIKey();
 	const authHeaders: Record<string, string> = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
 	const response = await fetch(`${syncAPIURL}${path}`, {
 		...init,
@@ -261,7 +251,7 @@ const synchronizePartyHunts = (): Promise<void> => {
 };
 
 const consumeEventStream = async (signal: AbortSignal, onConnected: () => void) => {
-	const apiKey = getStoredSyncAPIKey();
+	const apiKey = getSessionSyncAPIKey();
 	const authHeaders: Record<string, string> = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
 	const response = await fetch(`${syncAPIURL}/v1/sync/events`, {
 		headers: {

@@ -67,6 +67,7 @@ export default () => {
 	const [loadingHistory, setLoadingHistory] = createSignal(false);
 	const [storageError, setStorageError] = createSignal(false);
 	const [apiKeyModalOpen, setAPIKeyModalOpen] = createSignal(false);
+	const [apiKeyPromptDismissed, setAPIKeyPromptDismissed] = createSignal(false);
 	const clickSound = new Audio("/click.mp3");
 
 	const checkDatabaseAccess = async () => {
@@ -171,7 +172,7 @@ export default () => {
 				}
 
 				setClipboardText(text);
-				if (!hasStoredSyncAPIKey()) {
+				if (!hasStoredSyncAPIKey() && !apiKeyPromptDismissed()) {
 					setAPIKeyModalOpen(true);
 				}
 				toast.success(
@@ -199,6 +200,11 @@ export default () => {
 		}
 		setAPIKeyModalOpen(false);
 		return true;
+	};
+
+	const dismissAPIKeyPrompt = () => {
+		setAPIKeyPromptDismissed(true);
+		setAPIKeyModalOpen(false);
 	};
 
 	const saveHunt = async () => {
@@ -328,7 +334,7 @@ export default () => {
 				)}
 			</AppShell>
 			<StorageErrorModal open={storageError()} onClose={() => setStorageError(false)} />
-			<APIKeyModal open={apiKeyModalOpen()} onSubmit={submitAPIKey} onCancel={() => setAPIKeyModalOpen(false)} />
+			<APIKeyModal open={apiKeyModalOpen()} onSubmit={submitAPIKey} onCancel={dismissAPIKeyPrompt} />
 		</>
 	);
 };
