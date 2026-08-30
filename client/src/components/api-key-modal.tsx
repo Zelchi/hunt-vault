@@ -46,8 +46,8 @@ export default (props: APIKeyModalProps) => {
 						Chave de sincronização
 					</h2>
 					<p class={styles.message} id="api-key-modal-message">
-						Informe a API Key para enviar esta Party Hunt. Ela ficará disponível somente nesta sessão. Se você cancelar, a
-						caçada poderá ser salva localmente sem ser enviada ao servidor.
+						Informe a API Key para enviar esta Party Hunt. Ela ficará salva neste navegador e só será removida se o servidor
+						informar que ela é inválida. Se você cancelar, a caçada poderá ser salva localmente sem ser enviada ao servidor.
 					</p>
 					<label class={styles.label} for="sync-api-key">
 						API Key
