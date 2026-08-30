@@ -230,11 +230,11 @@ export const extractCreatureSummary = (wikitext?: string): CreatureSummary => {
 			const value = readField(fields, key);
 			return value
 				? {
-					label,
-					value: value.endsWith("%") ? value : `${value}%`,
-					kind: resistanceKind(value),
-					iconUrl: tibiaWikiFileUrl(iconFile),
-				}
+						label,
+						value: value.endsWith("%") ? value : `${value}%`,
+						kind: resistanceKind(value),
+						iconUrl: tibiaWikiFileUrl(iconFile),
+					}
 				: undefined;
 		})
 		.filter((resistance): resistance is NonNullable<typeof resistance> => Boolean(resistance));
@@ -243,8 +243,8 @@ export const extractCreatureSummary = (wikitext?: string): CreatureSummary => {
 		const value = readField(fields, key);
 		return value
 			? splitTopLevel(value, ",")
-				.map((item) => item.trim())
-				.filter(Boolean)
+					.map((item) => item.trim())
+					.filter(Boolean)
 			: [];
 	});
 

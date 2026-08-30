@@ -4,9 +4,14 @@ export const searchSlot = style({
 	position: "relative",
 	gridColumn: 2,
 	width: "100%",
+	maxWidth: "42rem",
 	minWidth: 0,
+	justifySelf: "center",
 	zIndex: 30,
 	"@media": {
+		"screen and (max-width: 900px)": {
+			maxWidth: "none",
+		},
 		"screen and (max-width: 640px)": {
 			gridColumn: "auto",
 			width: "100%",
@@ -17,6 +22,7 @@ export const searchSlot = style({
 export const searchForm = style({
 	position: "relative",
 	width: "100%",
+	margin: "0 auto",
 });
 
 export const searchIcon = style({
@@ -30,7 +36,7 @@ export const searchIcon = style({
 
 export const searchInput = style({
 	width: "100%",
-	height: "2.4rem",
+	height: "calc(2rem + 3px)",
 	padding: "0.55rem 2.4rem 0.55rem 2.5rem",
 	border: "1px solid #2b4638",
 	borderRadius: 0,
@@ -46,11 +52,26 @@ export const searchInput = style({
 			color: "#637469",
 		},
 		"&:focus": {
-			borderColor: "#d9a441",
-			boxShadow: "inset 0 0 0 1px rgb(217 164 65 / 28%), 0 0 0 2px rgb(217 164 65 / 9%)",
+			borderColor: "#2b4638",
+			boxShadow: "inset 0 0 0 1px #d9a441",
+		},
+		"&:focus-visible": {
+			outline: "none",
 		},
 		"&::-webkit-search-cancel-button": {
 			display: "none",
+		},
+	},
+	"@media": {
+		"screen and (max-width: 640px)": {
+			height: "calc(2rem + 3px)",
+			paddingInline: "2.35rem",
+			fontSize: "0.7rem",
+		},
+		"screen and (max-width: 400px)": {
+			paddingLeft: "2.15rem",
+			paddingRight: "2.1rem",
+			fontSize: "0.66rem",
 		},
 	},
 });
@@ -86,10 +107,16 @@ export const resultsPanel = style({
 	top: "calc(100% + 0.45rem)",
 	right: 0,
 	left: 0,
-	maxHeight: "min(24rem, calc(100vh - 5rem))",
+	maxHeight: "min(24rem, calc(100dvh - 5rem))",
 	border: "2px solid #2b4638",
 	background: "#101512",
 	boxShadow: "4px 4px 0 #050706",
+	"@media": {
+		"screen and (max-width: 640px)": {
+			top: "calc(100% + 0.35rem)",
+			maxHeight: "min(22rem, calc(100dvh - 12rem))",
+		},
+	},
 });
 
 export const resultsViewport = style({

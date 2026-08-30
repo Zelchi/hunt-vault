@@ -2,6 +2,7 @@ import { createEffect, createSignal, lazy, onCleanup, Show } from "solid-js";
 import EntityDetailPanel from "@/components/entity-detail-panel";
 import EntitySearch from "@/components/entity-search";
 import { SwordIcon } from "@/components/icons";
+import Navbar from "@/components/navbar";
 import type { EntitySearchResult } from "@/lib/entity-search";
 import * as styles from "@/styles/app-shell.css";
 import type { AppShellProps } from "@/types/components";
@@ -82,24 +83,7 @@ export default (props: AppShellProps) => {
 					Hunt Vault
 				</div>
 				<EntitySearch onSelect={setSelectedEntity} />
-				<nav class={styles.nav} aria-label="Navegação principal">
-					<button
-						class={styles.navButton}
-						data-active={props.view === "party"}
-						type="button"
-						onClick={() => props.onViewChange("party")}
-					>
-						Party
-					</button>
-					<button
-						class={styles.navButton}
-						data-active={props.view === "import"}
-						type="button"
-						onClick={() => props.onViewChange("import")}
-					>
-						Import
-					</button>
-				</nav>
+				<Navbar view={props.view} onViewChange={props.onViewChange} />
 			</header>
 			<Show when={selectedEntity()}>
 				{(entity) => <EntityDetailPanel entity={entity()} onClose={() => setSelectedEntity(undefined)} />}

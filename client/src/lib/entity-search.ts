@@ -100,11 +100,7 @@ const readCachedCatalog = () => {
 };
 
 const writeCachedCatalog = (catalog: EntityCatalog) => {
-	try {
-		localStorage.setItem(catalogCacheKey, JSON.stringify({ savedAt: Date.now(), catalog }));
-	} catch {
-		// O cache é opcional; a busca continua funcionando sem armazenamento local.
-	}
+	localStorage.setItem(catalogCacheKey, JSON.stringify({ savedAt: Date.now(), catalog }));
 };
 
 const readCatalogEntities = (value: unknown, collectionKey: "creature_list" | "spell_list", kind: "monster" | "spell") => {

@@ -17,10 +17,10 @@ export const header = style({
 	flex: "0 0 auto",
 	maxHeight: "10rem",
 	display: "grid",
-	gridTemplateColumns: "minmax(0, 1fr) minmax(16rem, 34rem) minmax(0, 1fr)",
+	gridTemplateColumns: "minmax(15.5rem, 1fr) minmax(18rem, 42rem) minmax(15.5rem, 1fr)",
 	alignItems: "center",
 	gap: "1rem",
-	padding: "0.65rem 1rem",
+	padding: "0.7rem clamp(0.75rem, 2vw, 2rem)",
 	background: "#101512",
 	borderBottom: "2px solid #284336",
 	boxShadow: "0 3px 0 #070a09",
@@ -45,10 +45,19 @@ export const header = style({
 		},
 	},
 	"@media": {
+		"screen and (max-width: 900px)": {
+			gridTemplateColumns: "minmax(0, 1fr) minmax(14rem, 1.5fr) minmax(0, 1fr)",
+			gap: "0.65rem",
+			padding: "0.6rem 0.75rem",
+		},
+		"screen and (max-width: 680px)": {
+			gridTemplateColumns: "minmax(0, 1fr) minmax(14rem, 1fr) minmax(0, 1fr)",
+		},
 		"screen and (max-width: 640px)": {
 			display: "flex",
-			alignItems: "flex-start",
+			alignItems: "stretch",
 			flexDirection: "column",
+			gap: "0.6rem",
 			padding: "0.65rem 0.75rem",
 		},
 	},
@@ -60,11 +69,23 @@ export const brand = style({
 	display: "flex",
 	alignItems: "center",
 	gap: "0.55rem",
+	minWidth: 0,
 	fontSize: "1rem",
 	fontWeight: 700,
 	letterSpacing: "0.08em",
 	textTransform: "uppercase",
 	color: "#f4f1ea",
+	whiteSpace: "nowrap",
+	"@media": {
+		"screen and (max-width: 900px)": {
+			gap: "0.45rem",
+			fontSize: "0.88rem",
+		},
+		"screen and (max-width: 640px)": {
+			width: "100%",
+			justifyContent: "center",
+		},
+	},
 });
 
 export const brandIcon = style({
@@ -86,8 +107,12 @@ export const nav = style({
 	gridColumn: 3,
 	justifySelf: "end",
 	display: "flex",
-	gap: "0.35rem",
+	minWidth: 0,
+	gap: "0.55rem",
 	"@media": {
+		"screen and (max-width: 900px)": {
+			gap: "0.45rem",
+		},
 		"screen and (max-width: 640px)": {
 			width: "100%",
 		},
@@ -96,6 +121,7 @@ export const nav = style({
 
 export const navButton = style({
 	width: "7.5rem",
+	height: "2rem",
 	padding: "0.4rem 0.75rem",
 	border: "1px solid transparent",
 	borderRadius: 0,
@@ -121,6 +147,16 @@ export const navButton = style({
 		},
 	},
 	"@media": {
+		"screen and (max-width: 900px)": {
+			width: "6.5rem",
+			paddingInline: "0.5rem",
+			fontSize: "0.66rem",
+		},
+		"screen and (max-width: 800px)": {
+			width: "5.5rem",
+			paddingInline: "0.35rem",
+			fontSize: "0.6rem",
+		},
 		"screen and (max-width: 640px)": {
 			flex: 1,
 			width: "auto",

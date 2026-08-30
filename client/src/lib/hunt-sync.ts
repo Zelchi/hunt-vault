@@ -41,11 +41,7 @@ const getStoredSyncAPIKey = () => {
 };
 
 const removeStoredSyncAPIKey = () => {
-	try {
-		localStorage.removeItem(syncAPIKeyStorageKey);
-	} catch {
-		// O navegador pode bloquear o armazenamento; nesse caso a chave já não será usada nesta sessão.
-	}
+	localStorage.removeItem(syncAPIKeyStorageKey);
 };
 
 const saveSyncAPIKey = (apiKey: string) => {

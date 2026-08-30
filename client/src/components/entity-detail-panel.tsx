@@ -97,7 +97,7 @@ export default (props: EntityDetailPanelProps) => {
 	const [page, setPage] = createSignal<WikiPageDetails>();
 	const [creatureSummary, setCreatureSummary] = createSignal<CreatureSummary>();
 	const [creatureFallback, setCreatureFallback] = createSignal<CreatureFallbackDetails>();
-	const [usingFallback, setUsingFallback] = createSignal(false);
+	const [, setUsingFallback] = createSignal(false);
 	const [loading, setLoading] = createSignal(true);
 	const [error, setError] = createSignal("");
 	let activeController: AbortController | undefined;
@@ -182,9 +182,7 @@ export default (props: EntityDetailPanelProps) => {
 							<img class={styles.entityImage} src={props.entity.imageUrl} alt="" />
 						</Show>
 						<div>
-							<div class={styles.panelKicker}>
-								{entityKindLabel[props.entity.kind]}
-							</div>
+							<div class={styles.panelKicker}>{entityKindLabel[props.entity.kind]}</div>
 							<h2 id="entity-detail-title" class={styles.panelTitle}>
 								{page()?.title ?? creatureFallback()?.title ?? props.entity.title}
 							</h2>
