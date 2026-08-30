@@ -212,6 +212,7 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 				id={scrollId()}
 				role={props.viewportRole}
 				aria-label={props.viewportAriaLabel}
+				data-scrollable={scrollable()}
 				onScroll={handleMainScroll}
 				ref={mainElement}
 			>

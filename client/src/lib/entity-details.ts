@@ -562,8 +562,27 @@ const removeSpellNavigationList = (document: Document) => {
 		});
 };
 
+const removeRunePurchaseSection = (document: Document) => {
+	const normalizeLabel = (value: string) => value.replace(/\s+/g, " ").replace(/:\s*$/, "").trim().toLocaleLowerCase();
+
+	const purchaseRow = Array.from(document.querySelectorAll("tr")).find((row) => {
+		const firstCell = row.cells[0];
+		return firstCell && normalizeLabel(firstCell.textContent ?? "") === "compra runas de";
+	});
+	const purchaseTable = purchaseRow?.closest("table");
+	if (!purchaseTable) {
+		return;
+	}
+
+	const containerRow = purchaseTable.parentElement?.closest("tr");
+	purchaseTable.remove();
+	if (containerRow && !containerRow.textContent?.trim() && !containerRow.querySelector("table, img, a")) {
+		containerRow.remove();
+	}
+};
+
 const removeUnneededWikiRows = (document: Document) => {
-	const removableLabels = new Set(["notas", "historia", "premium", "adicionado", "valor"]);
+	const removableLabels = new Set(["notas", "historia", "premium", "adicionado", "valor", "atualizada"]);
 	const normalizeLabel = (value: string) =>
 		value
 			.normalize("NFD")
@@ -579,6 +598,11 @@ const removeUnneededWikiRows = (document: Document) => {
 		}
 
 		for (const row of Array.from(body.rows)) {
+			if (!row.textContent?.trim() && !row.querySelector("img, a, table")) {
+				row.remove();
+				continue;
+			}
+
 			const firstCell = row.cells[0];
 			if (firstCell && removableLabels.has(normalizeLabel(firstCell.textContent ?? ""))) {
 				row.remove();
@@ -631,6 +655,7 @@ export const sanitizeWikiHtml = (html: string, kind: WikiEntityKind = "spell") =
 
 	if (kind === "rune") {
 		simplifyRuneWikiLayout(document);
+		removeRunePurchaseSection(document);
 	} else if (kind === "spell") {
 		flattenWikiLayout(document);
 		removeSpellNavigationList(document);
