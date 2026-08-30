@@ -9,6 +9,7 @@ export type WikiPageDetails = {
 	html: string;
 	wikitext?: string;
 	sourceUrl: string;
+	imageUrl?: string;
 };
 
 export type WikiEntityKind = "monster" | "spell" | "rune";
@@ -444,6 +445,21 @@ const resolveWikiPage = async (title: string, kind: WikiEntityKind, signal?: Abo
 	throw new Error("Página não encontrada.");
 };
 
+const extractRuneImageUrl = (html: string) => {
+	const document = new DOMParser().parseFromString(html, "text/html");
+	const source = document.querySelector("table.infobox img")?.getAttribute("src");
+	if (!source) {
+		return undefined;
+	}
+
+	try {
+		const imageUrl = new URL(source, TIBIA_WIKI_ORIGIN);
+		return imageUrl.origin === TIBIA_WIKI_ORIGIN && ["http:", "https:"].includes(imageUrl.protocol) ? imageUrl.href : undefined;
+	} catch {
+		return undefined;
+	}
+};
+
 export const fetchWikiDetails = async (
 	title: string,
 	signal?: AbortSignal,
@@ -479,10 +495,47 @@ export const fetchWikiDetails = async (
 		html,
 		wikitext,
 		sourceUrl: getWikiUrl(resolvedTitle),
+		imageUrl: kind === "rune" ? extractRuneImageUrl(html) : undefined,
 	};
 };
 
-export const sanitizeWikiHtml = (html: string) => {
+const simplifyRuneWikiLayout = (document: Document) => {
+	const parserOutput = document.querySelector(".mw-parser-output");
+	if (!parserOutput) {
+		return;
+	}
+
+	const disambiguationTable = Array.from(parserOutput.children).find(
+		(element) =>
+			element.tagName === "TABLE" &&
+			/este artigo é sobre/i.test(element.textContent ?? "") &&
+			/para a criatura/i.test(element.textContent ?? ""),
+	);
+	disambiguationTable?.remove();
+
+	const infobox = parserOutput.querySelector("table.infobox");
+	if (!infobox) {
+		return;
+	}
+
+	const layoutTable = Array.from(parserOutput.querySelectorAll("table")).find(
+		(table) => table !== infobox && table.querySelector("table.infobox") === infobox,
+	);
+	const layoutRow = layoutTable?.querySelector("tbody > tr");
+	const mainCell = layoutRow ? Array.from(layoutRow.children).find((cell) => cell.querySelector("table.infobox") === infobox) : undefined;
+
+	if (layoutTable && mainCell) {
+		const content = document.createDocumentFragment();
+		while (mainCell.firstChild) {
+			content.append(mainCell.firstChild);
+		}
+		layoutTable.replaceWith(content);
+	}
+
+	infobox.querySelector("tbody > tr")?.remove();
+};
+
+export const sanitizeWikiHtml = (html: string, kind: WikiEntityKind = "spell") => {
 	const document = new DOMParser().parseFromString(html, "text/html");
 	document.querySelectorAll("script, iframe, object, embed, form, link, meta, style").forEach((element) => {
 		element.remove();
@@ -523,6 +576,10 @@ export const sanitizeWikiHtml = (html: string) => {
 			element.setAttribute("rel", "noreferrer");
 		}
 	});
+
+	if (kind === "rune") {
+		simplifyRuneWikiLayout(document);
+	}
 
 	return document.body.innerHTML;
 };

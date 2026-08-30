@@ -101,6 +101,7 @@ export default (props: EntityDetailPanelProps) => {
 	const [loading, setLoading] = createSignal(true);
 	const [error, setError] = createSignal("");
 	let activeController: AbortController | undefined;
+	const entityImageUrl = () => props.entity.imageUrl ?? page()?.imageUrl;
 
 	createEffect(() => {
 		const title = props.entity.title;
@@ -135,7 +136,7 @@ export default (props: EntityDetailPanelProps) => {
 					return;
 				}
 
-				setPage({ ...nextPage, html: sanitizeWikiHtml(nextPage.html) });
+				setPage({ ...nextPage, html: sanitizeWikiHtml(nextPage.html, props.entity.kind) });
 				if (props.entity.kind === "monster") {
 					const nextSummary = extractCreatureSummary(nextPage.wikitext);
 					const hasSummary = nextSummary.resistances.length > 0 || nextSummary.loot.length > 0;
@@ -178,9 +179,7 @@ export default (props: EntityDetailPanelProps) => {
 			<section class={styles.panel} role="dialog" aria-modal="true" aria-labelledby="entity-detail-title">
 				<header class={styles.panelHeader}>
 					<div class={styles.entityHeading}>
-						<Show when={props.entity.imageUrl}>
-							<img class={styles.entityImage} src={props.entity.imageUrl} alt="" />
-						</Show>
+						<Show when={entityImageUrl()}>{(imageUrl) => <img class={styles.entityImage} src={imageUrl()} alt="" />}</Show>
 						<div>
 							<div class={styles.panelKicker}>{entityKindLabel[props.entity.kind]}</div>
 							<h2 id="entity-detail-title" class={styles.panelTitle}>

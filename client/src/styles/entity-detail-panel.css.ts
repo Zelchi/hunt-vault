@@ -102,7 +102,7 @@ export const panelBody = style({
 });
 
 export const panelBodyViewport = style({
-	padding: "1rem 1.15rem",
+	padding: "1rem 2.25rem 1rem 1.15rem",
 });
 
 export const panelStatus = style({
