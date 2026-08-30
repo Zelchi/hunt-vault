@@ -208,10 +208,6 @@ export default () => {
 		setSaving(true);
 
 		try {
-			if (!hasStoredSyncAPIKey()) {
-				setAPIKeyModalOpen(true);
-				return;
-			}
 			const reportType = detectHuntReportType(rawText);
 			if (reportType !== "party") {
 				toast.error("Somente relatórios de Party Hunt podem ser salvos.");

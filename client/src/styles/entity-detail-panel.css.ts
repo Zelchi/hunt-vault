@@ -237,6 +237,8 @@ globalStyle(`${resistanceItem} small`, {
 });
 
 export const wikiContent = style({
+	minWidth: 0,
+	maxWidth: "100%",
 	color: "#d7d4cc",
 	fontFamily: '"Courier New", ui-monospace, SFMono-Regular, Consolas, monospace',
 	fontSize: "0.78rem",
@@ -276,6 +278,8 @@ globalStyle(`${wikiContent} ul, ${wikiContent} ol`, {
 
 globalStyle(`${wikiContent} table`, {
 	width: "100%",
+	maxWidth: "100%",
+	minWidth: 0,
 	margin: "0.75rem 0",
 	borderCollapse: "collapse",
 	fontSize: "0.72rem",
@@ -284,8 +288,14 @@ globalStyle(`${wikiContent} table`, {
 globalStyle(`${wikiContent} th, ${wikiContent} td`, {
 	padding: "0.45rem 0.55rem",
 	border: "1px solid #2b4638",
+	overflowWrap: "anywhere",
 	textAlign: "left",
 	verticalAlign: "top",
+});
+
+globalStyle(`${wikiContent} table.infobox > tbody > tr > td:first-child`, {
+	width: "1%",
+	whiteSpace: "nowrap",
 });
 
 globalStyle(`${wikiContent} th`, {

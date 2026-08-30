@@ -499,19 +499,11 @@ export const fetchWikiDetails = async (
 	};
 };
 
-const simplifyRuneWikiLayout = (document: Document) => {
+const flattenWikiLayout = (document: Document) => {
 	const parserOutput = document.querySelector(".mw-parser-output");
 	if (!parserOutput) {
 		return;
 	}
-
-	const disambiguationTable = Array.from(parserOutput.children).find(
-		(element) =>
-			element.tagName === "TABLE" &&
-			/este artigo é sobre/i.test(element.textContent ?? "") &&
-			/para a criatura/i.test(element.textContent ?? ""),
-	);
-	disambiguationTable?.remove();
 
 	const infobox = parserOutput.querySelector("table.infobox");
 	if (!infobox) {
@@ -531,8 +523,68 @@ const simplifyRuneWikiLayout = (document: Document) => {
 		}
 		layoutTable.replaceWith(content);
 	}
+};
+
+const simplifyRuneWikiLayout = (document: Document) => {
+	const parserOutput = document.querySelector(".mw-parser-output");
+	if (!parserOutput) {
+		return;
+	}
+
+	const disambiguationTable = Array.from(parserOutput.children).find(
+		(element) =>
+			element.tagName === "TABLE" &&
+			/este artigo é sobre/i.test(element.textContent ?? "") &&
+			/para a criatura/i.test(element.textContent ?? ""),
+	);
+	disambiguationTable?.remove();
+
+	flattenWikiLayout(document);
+
+	const infobox = parserOutput.querySelector("table.infobox");
+	if (!infobox) {
+		return;
+	}
 
 	infobox.querySelector("tbody > tr")?.remove();
+};
+
+const removeSpellNavigationList = (document: Document) => {
+	const parserOutput = document.querySelector(".mw-parser-output");
+	if (!parserOutput) {
+		return;
+	}
+
+	Array.from(parserOutput.children)
+		.filter((element) => element.tagName === "CENTER" && /magias no tibia/i.test(element.textContent ?? ""))
+		.forEach((element) => {
+			element.remove();
+		});
+};
+
+const removeUnneededWikiRows = (document: Document) => {
+	const removableLabels = new Set(["notas", "historia", "premium", "adicionado", "valor"]);
+	const normalizeLabel = (value: string) =>
+		value
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.replace(/:\s*$/, "")
+			.trim()
+			.toLocaleLowerCase();
+
+	for (const infobox of Array.from(document.querySelectorAll<HTMLTableElement>("table.infobox"))) {
+		const body = infobox.tBodies[0];
+		if (!body) {
+			continue;
+		}
+
+		for (const row of Array.from(body.rows)) {
+			const firstCell = row.cells[0];
+			if (firstCell && removableLabels.has(normalizeLabel(firstCell.textContent ?? ""))) {
+				row.remove();
+			}
+		}
+	}
 };
 
 export const sanitizeWikiHtml = (html: string, kind: WikiEntityKind = "spell") => {
@@ -579,6 +631,13 @@ export const sanitizeWikiHtml = (html: string, kind: WikiEntityKind = "spell") =
 
 	if (kind === "rune") {
 		simplifyRuneWikiLayout(document);
+	} else if (kind === "spell") {
+		flattenWikiLayout(document);
+		removeSpellNavigationList(document);
+	}
+
+	if (kind !== "monster") {
+		removeUnneededWikiRows(document);
 	}
 
 	return document.body.innerHTML;

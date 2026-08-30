@@ -47,8 +47,6 @@ npm install
 
 ## Desenvolvimento
 
-Em desenvolvimento, a URL padrão da API é `http://localhost:8080`. Em produção, o frontend usa a própria origem com `/api`, resultando em `https://hunt.zelchi.com/api`. Depois que um relatório válido é colado e aparece na pré-visualização, o frontend solicita a API Key caso ela ainda não esteja salva e a mantém no armazenamento local deste navegador. Só então o envio pode ser feito por **Salvar resultado**.
-
 Inicie o servidor de desenvolvimento:
 
 ```bash
