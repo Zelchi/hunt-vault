@@ -150,8 +150,11 @@ export const result = style({
 
 export const resultImage = style({
 	flex: "0 0 auto",
-	width: "2rem",
-	height: "2rem",
+	width: "2.15rem",
+	height: "2.15rem",
+	padding: "0.15rem",
+	border: "1px solid #2b4638",
+	background: "#0a0e0c",
 	objectFit: "contain",
 	imageRendering: "pixelated",
 });

@@ -15,6 +15,14 @@ const resultKindLabel: Record<EntitySearchResult["kind"], string> = {
 	rune: "Runa",
 };
 
+const hideBrokenImage = (event: Event) => {
+	(event.currentTarget as HTMLImageElement).hidden = true;
+};
+
+const showLoadedImage = (event: Event) => {
+	(event.currentTarget as HTMLImageElement).hidden = false;
+};
+
 export default (props: EntitySearchProps) => {
 	const [query, setQuery] = createSignal("");
 	const [results, setResults] = createSignal<EntitySearchResult[]>([]);
@@ -153,7 +161,15 @@ export default (props: EntitySearchProps) => {
 									onClick={() => selectResult(result)}
 								>
 									<Show when={result.imageUrl}>
-										<img class={styles.resultImage} src={result.imageUrl} alt="" loading="lazy" />
+										<img
+											class={styles.resultImage}
+											src={result.imageUrl}
+											alt=""
+											loading="lazy"
+											decoding="async"
+											onLoad={showLoadedImage}
+											onError={hideBrokenImage}
+										/>
 									</Show>
 									<span class={styles.resultBody}>
 										<span class={styles.resultTopline}>

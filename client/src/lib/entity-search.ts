@@ -1,4 +1,5 @@
 const TIBIA_DATA_API = "https://api.tibiadata.com/v4";
+const TIBIA_LIBRARY_IMAGES = "https://static.tibia.com/images/library";
 export type EntityKind = "monster" | "spell" | "rune";
 
 export type EntitySearchResult = {
@@ -21,10 +22,11 @@ type CatalogEntity = {
 	id: string;
 	name: string;
 	kind: EntityKind;
+	formula?: string;
 	imageUrl?: string;
 };
 
-const catalogCacheKey = "hunt-vault:entity-catalog:v1";
+const catalogCacheKey = "hunt-vault:entity-catalog:v4";
 const catalogCacheMaxAge = 24 * 60 * 60 * 1000;
 const emptyCatalog: EntityCatalog = { monsters: [], spells: [], runes: [] };
 
@@ -66,6 +68,7 @@ const readCachedEntities = (value: unknown, expectedKind?: EntityKind): CatalogE
 				id: item.id,
 				name: item.name,
 				kind: item.kind,
+				formula: typeof item.formula === "string" ? item.formula : undefined,
 				imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : undefined,
 			},
 		];
@@ -103,6 +106,8 @@ const writeCachedCatalog = (catalog: EntityCatalog) => {
 	localStorage.setItem(catalogCacheKey, JSON.stringify({ savedAt: Date.now(), catalog }));
 };
 
+const getSpellImageUrl = (spellId: string) => `${TIBIA_LIBRARY_IMAGES}/${encodeURIComponent(spellId)}.png`;
+
 const readCatalogEntities = (value: unknown, collectionKey: "creature_list" | "spell_list", kind: "monster" | "spell") => {
 	if (!isRecord(value)) {
 		return [];
@@ -119,10 +124,11 @@ const readCatalogEntities = (value: unknown, collectionKey: "creature_list" | "s
 		}
 
 		const id = typeof item.race === "string" ? item.race : typeof item.spell_id === "string" ? item.spell_id : item.name;
-		const imageUrl = typeof item.image_url === "string" ? item.image_url : undefined;
+		const formula = typeof item.formula === "string" ? item.formula : undefined;
+		const imageUrl = typeof item.image_url === "string" ? item.image_url : kind === "spell" ? getSpellImageUrl(id) : undefined;
 		const entityKind: EntityKind = kind === "spell" && item.type_rune === true ? "rune" : kind;
 
-		return [{ id, name: item.name, kind: entityKind, imageUrl }];
+		return [{ id, name: item.name, kind: entityKind, formula, imageUrl }];
 	});
 };
 
@@ -164,8 +170,28 @@ const catalogResult = (entity: CatalogEntity): EntitySearchResult => ({
 	source: "tibiadata",
 	lookupId: entity.id,
 	imageUrl: entity.imageUrl,
-	snippet: entity.kind === "monster" ? "Catálogo de criaturas" : entity.kind === "rune" ? "Catálogo de runas" : "Catálogo de habilidades",
+	snippet:
+		entity.kind === "monster"
+			? "Catálogo de criaturas"
+			: entity.kind === "rune"
+				? "Catálogo de runas"
+				: entity.formula
+					? `Conjuração: ${entity.formula}`
+					: "Catálogo de habilidades",
 });
+
+const getMatchRank = (value: string, query: string) => {
+	if (value === query) {
+		return 0;
+	}
+	if (value.startsWith(query)) {
+		return 1;
+	}
+	if (value.includes(query)) {
+		return 2;
+	}
+	return 3;
+};
 
 export const searchCatalog = (catalog: EntityCatalog, query: string) => {
 	const normalizedQuery = normalizeSearchText(query);
@@ -176,15 +202,33 @@ export const searchCatalog = (catalog: EntityCatalog, query: string) => {
 	return [...catalog.monsters, ...catalog.spells, ...catalog.runes]
 		.filter((entity) => {
 			const name = normalizeSearchText(entity.name);
+			const formula = entity.kind === "spell" ? normalizeSearchText(entity.formula ?? "") : "";
 			const id = normalizeSearchText(entity.id);
-			return name.includes(normalizedQuery) || id.includes(normalizedQuery);
+			return name.includes(normalizedQuery) || formula.includes(normalizedQuery) || id.includes(normalizedQuery);
 		})
 		.sort((left, right) => {
 			const leftName = normalizeSearchText(left.name);
 			const rightName = normalizeSearchText(right.name);
-			const leftRank = leftName === normalizedQuery ? 0 : leftName.startsWith(normalizedQuery) ? 1 : 2;
-			const rightRank = rightName === normalizedQuery ? 0 : rightName.startsWith(normalizedQuery) ? 1 : 2;
-			return leftRank - rightRank || leftName.localeCompare(rightName);
+			const leftFormula = left.kind === "spell" ? normalizeSearchText(left.formula ?? "") : "";
+			const rightFormula = right.kind === "spell" ? normalizeSearchText(right.formula ?? "") : "";
+			const leftId = normalizeSearchText(left.id);
+			const rightId = normalizeSearchText(right.id);
+			const leftRank = getMatchRank(leftName, normalizedQuery);
+			const rightRank = getMatchRank(rightName, normalizedQuery);
+
+			if (leftRank !== 3 || rightRank !== 3) {
+				return leftRank - rightRank;
+			}
+
+			const leftFormulaRank = getMatchRank(leftFormula, normalizedQuery);
+			const rightFormulaRank = getMatchRank(rightFormula, normalizedQuery);
+			if (leftFormulaRank !== 3 || rightFormulaRank !== 3) {
+				return leftFormulaRank - rightFormulaRank;
+			}
+
+			const leftIdRank = getMatchRank(leftId, normalizedQuery);
+			const rightIdRank = getMatchRank(rightId, normalizedQuery);
+			return leftIdRank - rightIdRank || leftName.localeCompare(rightName);
 		})
 		.slice(0, 6)
 		.map(catalogResult);
