@@ -135,6 +135,13 @@ export const nestedScrollbar = style({
 	width: "0.75rem",
 });
 
+export const minimalScrollbar = style({
+	padding: 0,
+	border: 0,
+	background: "transparent",
+	boxShadow: "none",
+});
+
 export const horizontalScrollbar = style({
 	top: "auto",
 	right: "0.3rem",

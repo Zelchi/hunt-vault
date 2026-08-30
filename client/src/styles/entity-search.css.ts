@@ -38,7 +38,7 @@ export const searchInput = style({
 	width: "100%",
 	height: "calc(2rem + 3px)",
 	padding: "0.55rem 2.4rem 0.55rem 2.5rem",
-	border: "1px solid #2b4638",
+	border: "2px solid #2b4638",
 	borderRadius: 0,
 	background: "#0a0e0c",
 	boxShadow: "inset 0 0 0 1px rgb(217 164 65 / 5%)",
@@ -52,8 +52,7 @@ export const searchInput = style({
 			color: "#637469",
 		},
 		"&:focus": {
-			borderColor: "#2b4638",
-			boxShadow: "inset 0 0 0 1px #d9a441",
+			border: "2px solid #d9a441",
 		},
 		"&:focus-visible": {
 			outline: "none",

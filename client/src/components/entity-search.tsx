@@ -143,6 +143,7 @@ export default (props: EntitySearchProps) => {
 			<Show when={open() && query().trim().length > 0}>
 				<CustomScrollbar
 					variant="nested"
+					scrollbarVariant="minimal"
 					id="entity-search-results"
 					ariaLabel="Rolagem dos resultados da pesquisa"
 					viewportRole="listbox"
@@ -189,7 +190,6 @@ export default (props: EntitySearchProps) => {
 					<Show when={catalogReady() && results().length === 0}>
 						<div class={styles.searchStatus}>Nenhuma entidade encontrada no catálogo oficial.</div>
 					</Show>
-					<div class={styles.searchFooter}>Dados oficiais · clique para abrir os detalhes</div>
 				</CustomScrollbar>
 			</Show>
 		</div>

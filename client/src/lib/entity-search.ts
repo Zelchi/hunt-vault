@@ -230,6 +230,5 @@ export const searchCatalog = (catalog: EntityCatalog, query: string) => {
 			const rightIdRank = getMatchRank(rightId, normalizedQuery);
 			return leftIdRank - rightIdRank || leftName.localeCompare(rightName);
 		})
-		.slice(0, 6)
 		.map(catalogResult);
 };

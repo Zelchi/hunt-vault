@@ -5,6 +5,7 @@ type CustomScrollbarProps = {
 	children: JSX.Element;
 	onScroll?: (event: Event) => void;
 	variant?: "main" | "nested";
+	scrollbarVariant?: "default" | "minimal";
 	orientation?: "vertical" | "horizontal";
 	class?: string;
 	viewportClass?: string;
@@ -219,7 +220,7 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 				{props.children}
 			</main>
 			<div
-				class={`${styles.scrollbar} ${isNested() ? styles.nestedScrollbar : ""} ${isHorizontal() ? styles.horizontalScrollbar : ""}`}
+				class={`${styles.scrollbar} ${isNested() ? styles.nestedScrollbar : ""} ${isHorizontal() ? styles.horizontalScrollbar : ""} ${props.scrollbarVariant === "minimal" ? styles.minimalScrollbar : ""}`}
 				data-visible={scrollable()}
 				data-dragging={draggingScrollbar()}
 				role="scrollbar"
