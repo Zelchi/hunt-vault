@@ -105,7 +105,7 @@ export const panelBodyViewport = style({
 	padding: "1rem 1.15rem",
 	selectors: {
 		'&[data-scrollable="true"]': {
-			paddingRight: "2.25rem",
+			paddingRight: "1.80rem",
 		},
 	},
 });
