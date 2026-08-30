@@ -3,6 +3,8 @@ package api
 import (
 	"bufio"
 	"errors"
+	"fmt"
+	"log"
 	"os"
 	"strings"
 )
@@ -15,7 +17,9 @@ type Config struct {
 }
 
 func LoadConfig() Config {
-	loadDotEnv(".env")
+	if err := loadDotEnv(".env"); err != nil {
+		log.Printf("erro ao carregar .env: %v", err)
+	}
 	return Config{
 		Address:      env("ADDR", ":8080"),
 		DatabasePath: env("DATABASE_PATH", "data/hunt-vault.db"),
@@ -40,10 +44,13 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func loadDotEnv(path string) {
+func loadDotEnv(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
-		return
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("abrir arquivo: %w", err)
 	}
 	defer file.Close()
 
@@ -61,6 +68,10 @@ func loadDotEnv(path string) {
 		}
 		_ = os.Setenv(key, strings.Trim(strings.TrimSpace(value), `"`))
 	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("ler arquivo: %w", err)
+	}
+	return nil
 }
 
 func env(key, fallback string) string {
