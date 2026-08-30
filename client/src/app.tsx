@@ -51,9 +51,9 @@ const ensurePartyHuntFingerprints = async (records: HuntRecord[]) => {
 const getStoredView = (): View => {
 	try {
 		const storedView = localStorage.getItem(lastViewStorageKey);
-		return storedView === "party" || storedView === "import" ? storedView : "import";
+		return storedView === "party" || storedView === "import" ? storedView : "party";
 	} catch {
-		return "import";
+		return "party";
 	}
 };
 
