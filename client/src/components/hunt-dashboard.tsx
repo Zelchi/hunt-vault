@@ -273,7 +273,7 @@ export default (props: DashboardProps) => {
 					<div class={styles.chartGrid}>
 						<For each={dashboard.partyChartMetrics}>
 							{(config) => (
-								<MetricChart config={config} values={() => dashboard.getPartyMetricValues(partyHunts(), config)} />
+								<MetricChart config={config} values={() => dashboard.getPartyHourlyValues(partyHunts(), config)} />
 							)}
 						</For>
 					</div>

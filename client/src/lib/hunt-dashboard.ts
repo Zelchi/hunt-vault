@@ -179,6 +179,10 @@ const normalizeValueToHour = (value: number, durationSeconds: number) => {
 	return value * (3600 / Math.max(durationSeconds, 1));
 };
 
+const getPartyHourlyValues = (hunts: ParsedPartyHunt[], config: MetricConfig) => {
+	return hunts.map((hunt) => normalizeValueToHour(getPartyMetricValue(hunt, config), hunt.parsed.durationSeconds));
+};
+
 const aggregatePartyMembers = (hunts: ParsedPartyHunt[]): MemberSummary[] => {
 	const members = new Map<string, MemberSummary>();
 
@@ -335,6 +339,7 @@ export {
 	getAverageValue,
 	getBestPartyMember,
 	getMemberAverage,
+	getPartyHourlyValues,
 	getPartyMetricValue,
 	getPartyMetricValues,
 	getPartyRankings,
