@@ -97,8 +97,11 @@ export const closeButton = style({
 });
 
 export const panelBody = style({
+	flex: "1 1 auto",
 	minHeight: 0,
-	overflowY: "auto",
+});
+
+export const panelBodyViewport = style({
 	padding: "1rem 1.15rem",
 });
 
@@ -203,10 +206,24 @@ export const resistanceItem = style({
 	},
 });
 
-globalStyle(`${resistanceItem} span`, {
-	color: "#8b9a8f",
-	fontSize: "0.64rem",
+export const resistanceLabel = style({
+	display: "flex",
+	alignItems: "center",
+	minHeight: "1.2rem",
+	gap: "0.35rem",
+	color: "#c3d4b0",
+	fontSize: "0.78rem",
+	fontWeight: 700,
+	letterSpacing: "0.03em",
 	textTransform: "uppercase",
+});
+
+export const resistanceIcon = style({
+	flex: "0 0 auto",
+	width: "1.1rem",
+	height: "1.1rem",
+	objectFit: "contain",
+	imageRendering: "pixelated",
 });
 
 globalStyle(`${resistanceItem} strong`, {

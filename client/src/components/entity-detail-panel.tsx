@@ -1,5 +1,6 @@
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
 
+import CustomScrollbar from "@/components/custom-scrollbar";
 import {
 	type CreatureFallbackDetails,
 	type CreatureSummary,
@@ -62,7 +63,12 @@ const CreatureSummaryView = (props: { summary: CreatureSummary }) => (
 									<For each={group.items}>
 										{(resistance) => (
 											<div class={styles.resistanceItem} data-type={resistance.kind}>
-												<span>{resistance.label}</span>
+												<span class={styles.resistanceLabel}>
+													<Show when={resistance.iconUrl}>
+														<img class={styles.resistanceIcon} src={resistance.iconUrl} alt="" loading="lazy" />
+													</Show>
+													{resistance.label}
+												</span>
 												<strong>{resistance.value}</strong>
 												<small>{resistanceKindLabel[resistance.kind]}</small>
 											</div>
@@ -177,7 +183,7 @@ export default (props: EntityDetailPanelProps) => {
 						</Show>
 						<div>
 							<div class={styles.panelKicker}>
-								{entityKindLabel[props.entity.kind]} · {usingFallback() ? "TibiaData" : "TibiaWiki"}
+								{entityKindLabel[props.entity.kind]}
 							</div>
 							<h2 id="entity-detail-title" class={styles.panelTitle}>
 								{page()?.title ?? creatureFallback()?.title ?? props.entity.title}
@@ -189,7 +195,13 @@ export default (props: EntityDetailPanelProps) => {
 					</button>
 				</header>
 
-				<div class={styles.panelBody}>
+				<CustomScrollbar
+					variant="nested"
+					id="entity-detail-scroll"
+					ariaLabel="Rolagem dos detalhes da entidade"
+					class={styles.panelBody}
+					viewportClass={styles.panelBodyViewport}
+				>
 					<Show when={loading()}>
 						<div class={styles.panelStatus}>Carregando informações da TibiaWiki...</div>
 					</Show>
@@ -209,24 +221,7 @@ export default (props: EntityDetailPanelProps) => {
 					<Show when={props.entity.kind !== "monster" && !loading() && !error() && page()}>
 						<div class={styles.wikiContent} innerHTML={page()?.html ?? ""} />
 					</Show>
-				</div>
-
-				<footer class={styles.panelFooter}>
-					<Show when={page()}>
-						{(loadedPage) => (
-							<a href={loadedPage().sourceUrl} target="_blank" rel="noreferrer">
-								Ver página original na TibiaWiki
-							</a>
-						)}
-					</Show>
-					<Show when={!page() && creatureFallback()}>
-						{(fallback) => (
-							<a href={fallback().sourceUrl} target="_blank" rel="noreferrer">
-								Ver dados originais na TibiaData
-							</a>
-						)}
-					</Show>
-				</footer>
+				</CustomScrollbar>
 			</section>
 		</div>
 	);

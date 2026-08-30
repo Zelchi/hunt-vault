@@ -4,6 +4,14 @@ import * as styles from "@/styles/custom-scrollbar.css";
 type CustomScrollbarProps = {
 	children: JSX.Element;
 	onScroll?: (event: Event) => void;
+	variant?: "main" | "nested";
+	orientation?: "vertical" | "horizontal";
+	class?: string;
+	viewportClass?: string;
+	viewportRole?: "listbox";
+	viewportAriaLabel?: string;
+	id?: string;
+	ariaLabel?: string;
 };
 
 const CustomScrollbar = (props: CustomScrollbarProps) => {
@@ -17,6 +25,19 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 	let scrollbarElement!: HTMLDivElement;
 	let dragStartY = 0;
 	let dragStartScrollTop = 0;
+	const isNested = () => props.variant === "nested";
+	const isHorizontal = () => props.orientation === "horizontal";
+	const scrollId = () => props.id ?? "main-scroll";
+
+	const getScrollPosition = () => (isHorizontal() ? mainElement.scrollLeft : mainElement.scrollTop);
+	const setElementScrollPosition = (value: number) => {
+		if (isHorizontal()) {
+			mainElement.scrollLeft = value;
+			return;
+		}
+
+		mainElement.scrollTop = value;
+	};
 
 	const clamp = (value: number, minimum: number, maximum: number) => Math.min(Math.max(value, minimum), maximum);
 
@@ -25,20 +46,20 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 			return;
 		}
 
-		const viewportHeight = mainElement.clientHeight;
-		const contentHeight = mainElement.scrollHeight;
-		const trackHeight = scrollbarElement.clientHeight;
-		const maximumScroll = Math.max(contentHeight - viewportHeight, 0);
-		const currentScroll = clamp(mainElement.scrollTop, 0, maximumScroll);
-		const calculatedThumbHeight = contentHeight > 0 ? (viewportHeight / contentHeight) * trackHeight : trackHeight;
-		const nextThumbHeight = Math.min(trackHeight, Math.max(48, calculatedThumbHeight));
-		const maximumThumbTop = Math.max(trackHeight - nextThumbHeight, 0);
+		const viewportSize = isHorizontal() ? mainElement.clientWidth : mainElement.clientHeight;
+		const contentSize = isHorizontal() ? mainElement.scrollWidth : mainElement.scrollHeight;
+		const trackSize = isHorizontal() ? scrollbarElement.clientWidth : scrollbarElement.clientHeight;
+		const maximumScroll = Math.max(contentSize - viewportSize, 0);
+		const currentScroll = clamp(getScrollPosition(), 0, maximumScroll);
+		const calculatedThumbSize = contentSize > 0 ? (viewportSize / contentSize) * trackSize : trackSize;
+		const nextThumbSize = Math.min(trackSize, Math.max(48, calculatedThumbSize));
+		const maximumThumbOffset = Math.max(trackSize - nextThumbSize, 0);
 
-		setScrollable(maximumScroll > 0 && trackHeight > 0);
+		setScrollable(maximumScroll > 0 && trackSize > 0);
 		setScrollPosition(currentScroll);
 		setScrollMaximum(maximumScroll);
-		setThumbHeight(nextThumbHeight);
-		setThumbTop(maximumScroll > 0 ? (currentScroll / maximumScroll) * maximumThumbTop : 0);
+		setThumbHeight(nextThumbSize);
+		setThumbTop(maximumScroll > 0 ? (currentScroll / maximumScroll) * maximumThumbOffset : 0);
 	};
 
 	const handleMainScroll = (event: Event) => {
@@ -53,15 +74,18 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 
 		event.preventDefault();
 		const trackRect = scrollbarElement.getBoundingClientRect();
-		const maximumThumbTop = Math.max(scrollbarElement.clientHeight - thumbHeight(), 0);
+		const trackSize = isHorizontal() ? scrollbarElement.clientWidth : scrollbarElement.clientHeight;
+		const pointerPosition = isHorizontal() ? event.clientX : event.clientY;
+		const trackStart = isHorizontal() ? trackRect.left : trackRect.top;
+		const maximumThumbTop = Math.max(trackSize - thumbHeight(), 0);
 
 		if (maximumThumbTop === 0) {
 			return;
 		}
 
-		const requestedThumbTop = event.clientY - trackRect.top - thumbHeight() / 2;
+		const requestedThumbTop = pointerPosition - trackStart - thumbHeight() / 2;
 		const positionRatio = clamp(requestedThumbTop / maximumThumbTop, 0, 1);
-		mainElement.scrollTop = positionRatio * scrollMaximum();
+		setElementScrollPosition(positionRatio * scrollMaximum());
 	};
 
 	const handleScrollbarPointerMove = (event: PointerEvent) => {
@@ -69,13 +93,15 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 			return;
 		}
 
-		const maximumThumbTop = Math.max(scrollbarElement.clientHeight - thumbHeight(), 0);
+		const trackSize = isHorizontal() ? scrollbarElement.clientWidth : scrollbarElement.clientHeight;
+		const pointerPosition = isHorizontal() ? event.clientX : event.clientY;
+		const maximumThumbTop = Math.max(trackSize - thumbHeight(), 0);
 		if (maximumThumbTop === 0) {
 			return;
 		}
 
-		const scrollDelta = ((event.clientY - dragStartY) / maximumThumbTop) * scrollMaximum();
-		mainElement.scrollTop = clamp(dragStartScrollTop + scrollDelta, 0, scrollMaximum());
+		const scrollDelta = ((pointerPosition - dragStartY) / maximumThumbTop) * scrollMaximum();
+		setElementScrollPosition(clamp(dragStartScrollTop + scrollDelta, 0, scrollMaximum()));
 	};
 
 	const stopScrollbarDrag = () => {
@@ -92,8 +118,8 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 
 		event.preventDefault();
 		event.stopPropagation();
-		dragStartY = event.clientY;
-		dragStartScrollTop = mainElement.scrollTop;
+		dragStartY = isHorizontal() ? event.clientX : event.clientY;
+		dragStartScrollTop = getScrollPosition();
 		setDraggingScrollbar(true);
 		window.addEventListener("pointermove", handleScrollbarPointerMove);
 		window.addEventListener("pointerup", stopScrollbarDrag);
@@ -105,34 +131,60 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 			return;
 		}
 
-		const scrollStep = Math.max(mainElement.clientHeight * 0.15, 48);
+		const viewportSize = isHorizontal() ? mainElement.clientWidth : mainElement.clientHeight;
+		const scrollStep = Math.max(viewportSize * 0.15, 48);
 		let nextScrollTop: number | undefined;
 
-		switch (event.key) {
-			case "ArrowDown":
-				nextScrollTop = mainElement.scrollTop + scrollStep;
-				break;
-			case "ArrowUp":
-				nextScrollTop = mainElement.scrollTop - scrollStep;
-				break;
-			case "PageDown":
-				nextScrollTop = mainElement.scrollTop + mainElement.clientHeight;
-				break;
-			case "PageUp":
-				nextScrollTop = mainElement.scrollTop - mainElement.clientHeight;
-				break;
-			case "Home":
-				nextScrollTop = 0;
-				break;
-			case "End":
-				nextScrollTop = scrollMaximum();
-				break;
-			default:
-				return;
+		if (isHorizontal()) {
+			switch (event.key) {
+				case "ArrowRight":
+					nextScrollTop = getScrollPosition() + scrollStep;
+					break;
+				case "ArrowLeft":
+					nextScrollTop = getScrollPosition() - scrollStep;
+					break;
+				case "PageDown":
+					nextScrollTop = getScrollPosition() + viewportSize;
+					break;
+				case "PageUp":
+					nextScrollTop = getScrollPosition() - viewportSize;
+					break;
+				case "Home":
+					nextScrollTop = 0;
+					break;
+				case "End":
+					nextScrollTop = scrollMaximum();
+					break;
+				default:
+					return;
+			}
+		} else {
+			switch (event.key) {
+				case "ArrowDown":
+					nextScrollTop = getScrollPosition() + scrollStep;
+					break;
+				case "ArrowUp":
+					nextScrollTop = getScrollPosition() - scrollStep;
+					break;
+				case "PageDown":
+					nextScrollTop = getScrollPosition() + viewportSize;
+					break;
+				case "PageUp":
+					nextScrollTop = getScrollPosition() - viewportSize;
+					break;
+				case "Home":
+					nextScrollTop = 0;
+					break;
+				case "End":
+					nextScrollTop = scrollMaximum();
+					break;
+				default:
+					return;
+			}
 		}
 
 		event.preventDefault();
-		mainElement.scrollTop = clamp(nextScrollTop, 0, scrollMaximum());
+		setElementScrollPosition(clamp(nextScrollTop, 0, scrollMaximum()));
 	};
 
 	onMount(() => {
@@ -154,18 +206,25 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 	});
 
 	return (
-		<div class={styles.mainFrame}>
-			<main class={styles.main} id="main-scroll" onScroll={handleMainScroll} ref={mainElement}>
+		<div class={`${isNested() ? styles.nestedFrame : styles.mainFrame} ${props.class ?? ""}`}>
+			<main
+				class={`${isNested() ? (isHorizontal() ? styles.horizontalMain : styles.nestedMain) : styles.main} ${props.viewportClass ?? ""}`}
+				id={scrollId()}
+				role={props.viewportRole}
+				aria-label={props.viewportAriaLabel}
+				onScroll={handleMainScroll}
+				ref={mainElement}
+			>
 				{props.children}
 			</main>
 			<div
-				class={styles.scrollbar}
+				class={`${styles.scrollbar} ${isNested() ? styles.nestedScrollbar : ""} ${isHorizontal() ? styles.horizontalScrollbar : ""}`}
 				data-visible={scrollable()}
 				data-dragging={draggingScrollbar()}
 				role="scrollbar"
-				aria-label="Rolagem do conteúdo"
-				aria-controls="main-scroll"
-				aria-orientation="vertical"
+				aria-label={props.ariaLabel ?? "Rolagem do conteúdo"}
+				aria-controls={scrollId()}
+				aria-orientation={isHorizontal() ? "horizontal" : "vertical"}
 				aria-valuemin="0"
 				aria-valuemax={scrollMaximum()}
 				aria-valuenow={scrollPosition()}
@@ -177,7 +236,11 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 				<div
 					class={styles.scrollbarThumb}
 					data-dragging={draggingScrollbar()}
-					style={{ height: `${thumbHeight()}px`, transform: `translateY(${thumbTop()}px)` }}
+					style={
+						isHorizontal()
+							? { width: `${thumbHeight()}px`, height: "100%", transform: `translateX(${thumbTop()}px)` }
+							: { height: `${thumbHeight()}px`, transform: `translateY(${thumbTop()}px)` }
+					}
 					onPointerDown={handleScrollbarThumbPointerDown}
 				/>
 			</div>

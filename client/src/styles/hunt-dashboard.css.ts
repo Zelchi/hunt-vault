@@ -184,7 +184,11 @@ export const ranking = style({
 	marginTop: "1rem",
 	border: "1px solid #1f3428",
 	background: "#0d1310",
-	overflowX: "auto",
+});
+
+export const rankingScroller = style({
+	width: "100%",
+	maxWidth: "100%",
 });
 
 export const rankingTitle = style({

@@ -2,6 +2,7 @@ import type { Accessor } from "solid-js";
 import { createEffect, createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
+import CustomScrollbar from "@/components/custom-scrollbar";
 import * as dashboard from "@/lib/hunt-dashboard";
 import * as styles from "@/styles/hunt-dashboard.css";
 import type { DashboardProps } from "@/types/components";
@@ -228,36 +229,44 @@ export default (props: DashboardProps) => {
 							when={partyMembers().length > 0}
 							fallback={<div class={styles.emptyState}>Nenhum membro com métricas individuais foi encontrado.</div>}
 						>
-							<table class={styles.table}>
-								<thead>
-									<tr>
-										<th>#</th>
-										<th>Jogador</th>
-										<th>PTs</th>
-										<th>Horas</th>
-										<th>Dano/h médio</th>
-										<th>Healing/h médio</th>
-										<th>Supplies/h médio</th>
-										<th>Lucro/h médio</th>
-									</tr>
-								</thead>
-								<tbody>
-									<For each={partyMembers()}>
-										{(member, index) => (
-											<tr>
-												<td>{index() + 1}</td>
-												<td>{member.name}</td>
-												<td>{member.hunts}</td>
-												<td>{member.durationHours.toFixed(2)}</td>
-												<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "damage"))}</td>
-												<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "healing"))}</td>
-												<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "supplies"))}</td>
-												<td>{dashboard.formatSignedNumber(dashboard.getMemberAverage(member, "profit"))}</td>
-											</tr>
-										)}
-									</For>
-								</tbody>
-							</table>
+							<CustomScrollbar
+								variant="nested"
+								orientation="horizontal"
+								id="party-ranking-scroll"
+								ariaLabel="Rolagem horizontal do ranking"
+								class={styles.rankingScroller}
+							>
+								<table class={styles.table}>
+									<thead>
+										<tr>
+											<th>#</th>
+											<th>Jogador</th>
+											<th>PTs</th>
+											<th>Horas</th>
+											<th>Dano/h médio</th>
+											<th>Healing/h médio</th>
+											<th>Supplies/h médio</th>
+											<th>Lucro/h médio</th>
+										</tr>
+									</thead>
+									<tbody>
+										<For each={partyMembers()}>
+											{(member, index) => (
+												<tr>
+													<td>{index() + 1}</td>
+													<td>{member.name}</td>
+													<td>{member.hunts}</td>
+													<td>{member.durationHours.toFixed(2)}</td>
+													<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "damage"))}</td>
+													<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "healing"))}</td>
+													<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "supplies"))}</td>
+													<td>{dashboard.formatSignedNumber(dashboard.getMemberAverage(member, "profit"))}</td>
+												</tr>
+											)}
+										</For>
+									</tbody>
+								</table>
+							</CustomScrollbar>
 						</Show>
 					</div>
 

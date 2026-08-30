@@ -276,6 +276,10 @@ export const rawDetails = style({
 	background: "#101512",
 });
 
+export const rawTextScroller = style({
+	maxHeight: "24rem",
+});
+
 globalStyle(`${rawDetails} summary`, {
 	padding: "1rem 1.25rem",
 	color: "#a5a8b2",
@@ -285,16 +289,16 @@ globalStyle(`${rawDetails} summary`, {
 });
 
 export const rawText = style({
-	maxHeight: "24rem",
 	margin: 0,
 	padding: "0 1.25rem 1.25rem",
 	color: "#b9bcc5",
 	font: "0.8rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace",
 	whiteSpace: "pre-wrap",
-	overflow: "auto",
-	scrollbarColor: "#63836c #0a0e0c",
-	scrollbarWidth: "thin",
 	userSelect: "text",
+});
+
+export const rawTextViewport = style({
+	paddingTop: "1rem",
 });
 
 export const emptyState = style({

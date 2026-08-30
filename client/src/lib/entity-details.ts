@@ -18,6 +18,7 @@ export type CreatureSummary = {
 		label: string;
 		value: string;
 		kind: "immune" | "strong" | "neutral" | "weak" | "healed";
+		iconUrl?: string;
 	}>;
 	loot: string[];
 };
@@ -158,6 +159,33 @@ const cleanWikiValue = (value: string | undefined) => {
 
 const readField = (fields: Record<string, string>, key: string) => cleanWikiValue(fields[key.toLocaleLowerCase()]);
 
+const tibiaWikiFileUrl = (fileName: string) => `${TIBIA_WIKI_ORIGIN}/wiki/Special:FilePath/${encodeURIComponent(fileName)}`;
+
+const creatureElementMetadata = [
+	{ label: "Físico", aliases: ["physical", "físico"], iconUrl: tibiaWikiFileUrl("Físico.png") },
+	{ label: "Terra", aliases: ["earth", "terra"], iconUrl: tibiaWikiFileUrl("Poisoned Icon.gif") },
+	{ label: "Fogo", aliases: ["fire", "fogo"], iconUrl: tibiaWikiFileUrl("Burning Icon.gif") },
+	{ label: "Energia", aliases: ["energy", "energia"], iconUrl: tibiaWikiFileUrl("Electrified Icon.gif") },
+	{ label: "Gelo", aliases: ["ice", "gelo"], iconUrl: tibiaWikiFileUrl("Freezing Icon.gif") },
+	{ label: "Morte", aliases: ["death", "morte"], iconUrl: tibiaWikiFileUrl("Cursed Icon.gif") },
+	{ label: "Sagrado", aliases: ["holy", "sagrado"], iconUrl: tibiaWikiFileUrl("Dazzled Icon.gif") },
+	{ label: "Água", aliases: ["drown", "drowning", "water", "água"], iconUrl: tibiaWikiFileUrl("Drowning Icon.gif") },
+	{ label: "Dreno de vida", aliases: ["life drain", "hp drain", "dreno de vida"], iconUrl: tibiaWikiFileUrl("Life Drain Icone.gif") },
+	{ label: "Cura", aliases: ["heal", "healing", "cura"], iconUrl: tibiaWikiFileUrl("Heal Icon.png") },
+] as const;
+
+const normalizeCreatureElement = (value: string) =>
+	value
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLocaleLowerCase()
+		.trim();
+
+const findCreatureElement = (value: string) => {
+	const normalizedValue = normalizeCreatureElement(value);
+	return creatureElementMetadata.find((element) => element.aliases.some((alias) => normalizeCreatureElement(alias) === normalizedValue));
+};
+
 const resistanceKind = (value: string): CreatureSummary["resistances"][number]["kind"] => {
 	const numericValue = Number.parseFloat(value.replace(",", ".").replace("%", ""));
 	if (!Number.isFinite(numericValue)) {
@@ -185,34 +213,38 @@ export const extractCreatureSummary = (wikitext?: string): CreatureSummary => {
 	}
 
 	const fields = readInfobox(wikitext);
-	const resistances = [
-		["Físico", "physicalDmgMod"],
-		["Terra", "earthDmgMod"],
-		["Fogo", "fireDmgMod"],
-		["Energia", "energyDmgMod"],
-		["Gelo", "iceDmgMod"],
-		["Morte", "deathDmgMod"],
-		["Sagrado", "holyDmgMod"],
-		["Água", "drownDmgMod"],
-		["Dreno de vida", "hpDrainDmgMod"],
-		["Cura", "healDmgMod"],
-	]
-		.map(([label, key]) => {
+	const resistanceDefinitions: ReadonlyArray<readonly [string, string, string]> = [
+		["Físico", "physicalDmgMod", "Físico.png"],
+		["Terra", "earthDmgMod", "Poisoned Icon.gif"],
+		["Fogo", "fireDmgMod", "Burning Icon.gif"],
+		["Energia", "energyDmgMod", "Electrified Icon.gif"],
+		["Gelo", "iceDmgMod", "Freezing Icon.gif"],
+		["Morte", "deathDmgMod", "Cursed Icon.gif"],
+		["Sagrado", "holyDmgMod", "Dazzled Icon.gif"],
+		["Água", "drownDmgMod", "Drowning Icon.gif"],
+		["Dreno de vida", "hpDrainDmgMod", "Life Drain Icone.gif"],
+		["Cura", "healDmgMod", "Heal Icon.png"],
+	];
+	const resistances: CreatureSummary["resistances"] = resistanceDefinitions
+		.map(([label, key, iconFile]) => {
 			const value = readField(fields, key);
-			return value ? { label, value: value.endsWith("%") ? value : `${value}%`, kind: resistanceKind(value) } : undefined;
+			return value
+				? {
+					label,
+					value: value.endsWith("%") ? value : `${value}%`,
+					kind: resistanceKind(value),
+					iconUrl: tibiaWikiFileUrl(iconFile),
+				}
+				: undefined;
 		})
 		.filter((resistance): resistance is NonNullable<typeof resistance> => Boolean(resistance));
-	const immunities = readField(fields, "immunities");
-	if (immunities) {
-		resistances.push({ label: "Imunidades", value: immunities, kind: "immune" });
-	}
 
 	const loot = ["lootcomum", "lootincomum", "lootsemiraro", "lootraro", "lootmuitoraro", "lootevent", "lootraid"].flatMap((key) => {
 		const value = readField(fields, key);
 		return value
 			? splitTopLevel(value, ",")
-					.map((item) => item.trim())
-					.filter(Boolean)
+				.map((item) => item.trim())
+				.filter(Boolean)
 			: [];
 	});
 
@@ -226,22 +258,21 @@ const readCreatureList = (creature: Record<string, unknown>, key: string) => {
 
 const createCreatureFallbackSummary = (creature: Record<string, unknown>): CreatureSummary => {
 	const resistances = [
-		["Imune", "immune", "immune"],
-		["Resistente", "strong", "strong"],
-		["Vulnerável", "weakness", "weak"],
-		["Cura", "healed", "healed"],
-	]
-		.map(([label, key, kind]) => {
-			const values = readCreatureList(creature, key);
-			return values.length > 0
-				? {
-						label,
-						value: values.join(", "),
-						kind: kind as CreatureSummary["resistances"][number]["kind"],
-					}
-				: undefined;
-		})
-		.filter((resistance): resistance is NonNullable<typeof resistance> => Boolean(resistance));
+		["immune", "immune"],
+		["strong", "strong"],
+		["weakness", "weak"],
+		["healed", "healed"],
+	].flatMap(([key, kind]) =>
+		readCreatureList(creature, key).map((value) => {
+			const element = findCreatureElement(value);
+			return {
+				label: element?.label ?? value,
+				value: "—",
+				kind: kind as CreatureSummary["resistances"][number]["kind"],
+				iconUrl: element?.iconUrl,
+			};
+		}),
+	);
 
 	return { resistances, loot: readCreatureList(creature, "loot_list") };
 };

@@ -1,4 +1,5 @@
 import { createMemo, createSignal, For, lazy, Show } from "solid-js";
+import CustomScrollbar from "@/components/custom-scrollbar";
 import { ChevronLeftIcon, ChevronRightIcon, ScrollIcon } from "@/components/icons";
 import * as dashboard from "@/lib/hunt-dashboard";
 import { detectHuntReportType } from "@/lib/hunt-detector";
@@ -228,7 +229,15 @@ export default (props: HuntViewerProps) => {
 
 								<details class={styles.rawDetails}>
 									<summary>Ver texto original da caçada</summary>
-									<pre class={styles.rawText}>{active().record.rawText}</pre>
+									<CustomScrollbar
+										variant="nested"
+										id={`raw-hunt-${active().record.id}`}
+										ariaLabel="Rolagem do texto original"
+										class={styles.rawTextScroller}
+										viewportClass={styles.rawTextViewport}
+									>
+										<pre class={styles.rawText}>{active().record.rawText}</pre>
+									</CustomScrollbar>
 								</details>
 							</>
 						)}

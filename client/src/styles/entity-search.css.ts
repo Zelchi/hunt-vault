@@ -87,10 +87,13 @@ export const resultsPanel = style({
 	right: 0,
 	left: 0,
 	maxHeight: "min(24rem, calc(100vh - 5rem))",
-	overflowY: "auto",
 	border: "2px solid #2b4638",
 	background: "#101512",
 	boxShadow: "4px 4px 0 #050706",
+});
+
+export const resultsViewport = style({
+	paddingRight: "1.1rem",
 });
 
 export const result = style({

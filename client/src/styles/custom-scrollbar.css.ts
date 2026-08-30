@@ -30,6 +30,49 @@ export const main = style({
 	},
 });
 
+export const nestedFrame = style({
+	position: "relative",
+	display: "flex",
+	minHeight: 0,
+	width: "100%",
+	flexDirection: "column",
+	overflow: "hidden",
+});
+
+export const nestedMain = style({
+	minHeight: 0,
+	width: "100%",
+	flex: "1 1 auto",
+	paddingRight: "1.1rem",
+	overflowX: "hidden",
+	overflowY: "auto",
+	scrollbarWidth: "none",
+	selectors: {
+		"&::-webkit-scrollbar": {
+			display: "none",
+			width: 0,
+			height: 0,
+		},
+	},
+});
+
+export const horizontalMain = style({
+	minHeight: 0,
+	width: "100%",
+	flex: "1 1 auto",
+	paddingBottom: "1.1rem",
+	overflowX: "auto",
+	overflowY: "hidden",
+	scrollbarWidth: "none",
+	selectors: {
+		"&::-webkit-scrollbar": {
+			display: "none",
+			width: 0,
+			height: 0,
+		},
+	},
+});
+
 export const scrollbar = style({
 	position: "absolute",
 	top: "0.85rem",
@@ -68,7 +111,6 @@ export const scrollbar = style({
 
 export const scrollbarThumb = style({
 	width: "100%",
-	minHeight: "3rem",
 	border: "2px solid #080b0a",
 	background: "linear-gradient(180deg, #d9a441 0%, #8ba66f 22%, #52745c 100%)",
 	boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 16%)",
@@ -82,6 +124,29 @@ export const scrollbarThumb = style({
 			background: "#d9a441",
 			boxShadow: "inset 0 0 0 1px #f1c862",
 			cursor: 'url("/link.cur") 0 0, grabbing',
+		},
+	},
+});
+
+export const nestedScrollbar = style({
+	top: "0.35rem",
+	right: "0.3rem",
+	bottom: "0.35rem",
+	width: "0.75rem",
+});
+
+export const horizontalScrollbar = style({
+	top: "auto",
+	right: "0.3rem",
+	bottom: "0.3rem",
+	left: "0.3rem",
+	width: "auto",
+	height: "0.75rem",
+	"@media": {
+		"screen and (max-width: 640px)": {
+			right: "0.3rem",
+			width: "auto",
+			height: "0.7rem",
 		},
 	},
 });

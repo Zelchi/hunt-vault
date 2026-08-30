@@ -1,5 +1,6 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 
+import CustomScrollbar from "@/components/custom-scrollbar";
 import { SearchIcon } from "@/components/icons";
 import { type EntityCatalog, type EntitySearchResult, loadEntityCatalog, searchCatalog } from "@/lib/entity-search";
 import * as styles from "@/styles/entity-search.css";
@@ -132,7 +133,15 @@ export default (props: EntitySearchProps) => {
 			</div>
 
 			<Show when={open() && query().trim().length > 0}>
-				<div id="entity-search-results" class={styles.resultsPanel} role="listbox" aria-label="Resultados do catálogo oficial">
+				<CustomScrollbar
+					variant="nested"
+					id="entity-search-results"
+					ariaLabel="Rolagem dos resultados da pesquisa"
+					viewportRole="listbox"
+					viewportAriaLabel="Resultados do catálogo oficial"
+					class={styles.resultsPanel}
+					viewportClass={styles.resultsViewport}
+				>
 					<Show when={results().length > 0}>
 						<For each={results()}>
 							{(result, index) => (
@@ -165,7 +174,7 @@ export default (props: EntitySearchProps) => {
 						<div class={styles.searchStatus}>Nenhuma entidade encontrada no catálogo oficial.</div>
 					</Show>
 					<div class={styles.searchFooter}>Dados oficiais · clique para abrir os detalhes</div>
-				</div>
+				</CustomScrollbar>
 			</Show>
 		</div>
 	);
