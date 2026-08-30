@@ -96,7 +96,3 @@ Quando acessada pelo container, a API usa o prefixo `/api`:
 | `GET` | `/api/v1/sync/events` | Não |
 
 Internamente, o processo Go continua usando `/health` e `/v1/sync/*`; o próprio servidor remove o prefixo `/api` antes de encaminhar a requisição ao router da API. Os caminhos sem prefixo continuam disponíveis para o desenvolvimento local.
-
-## GitHub Pages
-
-O build do client continua podendo ser publicado separadamente com `cd client && yarn deploy`. Para o novo modelo de implantação, use o build completo pelo Docker Compose: em produção o client já assume a API no mesmo domínio, em `/api`.

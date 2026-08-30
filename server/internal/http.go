@@ -8,9 +8,6 @@ import (
 	"strings"
 )
 
-// newApplicationHandler exposes the API both at its native paths and below
-// /api. The direct paths keep local development and existing API consumers
-// working, while the prefixed paths are used by the single-container build.
 func newApplicationHandler(apiHandler http.Handler, staticDir string) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/api", http.StripPrefix("/api", apiHandler))
