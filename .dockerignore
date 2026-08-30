@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+!client/.env.example
+!server/.env.example
+
+client/node_modules
+client/dist
+server/data
+server/.gocache
+server/.gopath
+
+**/*.log

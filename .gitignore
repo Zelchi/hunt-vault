@@ -1,0 +1,6 @@
+.env
+.env.local
+data/
+
+client/node_modules/
+client/dist/

@@ -17,6 +17,8 @@ go run ./cmd
 
 Defina `SYNC_API_KEY` no arquivo `.env` antes de iniciar o servidor.
 
+Para servir um build do client pelo próprio processo Go, defina `STATIC_DIR` apontando para o diretório `dist`. Nesse modo, o client fica em `/` e a API também pode ser acessada com o prefixo `/api`.
+
 O servidor ficará disponível em `http://localhost:8080`.
 
 ## Testes

@@ -26,8 +26,9 @@ func main() {
 		Handler:           application.Handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		// The SSE endpoint is intentionally long-lived and sends its own heartbeats.
+		WriteTimeout: 0,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	serverErrors := make(chan error, 1)

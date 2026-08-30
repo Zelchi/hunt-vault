@@ -30,7 +30,7 @@ func New(ctx context.Context, config Config) (*App, error) {
 	events := newBroker()
 	return &App{
 		db:      db,
-		Handler: newRouter(newStore(db), events, config.SyncAPIKey),
+		Handler: newApplicationHandler(newRouter(newStore(db), events, config.SyncAPIKey), config.StaticDir),
 	}, nil
 }
 

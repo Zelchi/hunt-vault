@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Address      string
 	DatabasePath string
+	StaticDir    string
 	SyncAPIKey   []byte
 }
 
@@ -18,6 +19,7 @@ func LoadConfig() Config {
 	return Config{
 		Address:      env("ADDR", ":8080"),
 		DatabasePath: env("DATABASE_PATH", "data/hunt-vault.db"),
+		StaticDir:    env("STATIC_DIR", ""),
 		SyncAPIKey:   []byte(env("SYNC_API_KEY", "")),
 	}
 }
@@ -28,6 +30,9 @@ func (c Config) Validate() error {
 	}
 	if strings.TrimSpace(c.DatabasePath) == "" {
 		return errors.New("DATABASE_PATH não pode ser vazio")
+	}
+	if strings.ContainsRune(c.StaticDir, '\x00') {
+		return errors.New("STATIC_DIR contém um caminho inválido")
 	}
 	if len(c.SyncAPIKey) < 32 {
 		return errors.New("SYNC_API_KEY deve ter pelo menos 32 bytes")
