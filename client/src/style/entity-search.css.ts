@@ -1,4 +1,4 @@
-import { style } from "@vanilla-extract/css";
+import { keyframes, style } from "@vanilla-extract/css";
 
 export const searchSlot = style({
 	position: "relative",
@@ -101,6 +101,21 @@ export const clearButton = style({
 	},
 });
 
+const searchLoadingSpin = keyframes({
+	from: { transform: "rotate(0deg)" },
+	to: { transform: "rotate(360deg)" },
+});
+
+export const loadingIndicator = style({
+	display: "block",
+	width: "0.85rem",
+	height: "0.85rem",
+	border: "2px solid #526d5b",
+	borderTopColor: "#d9a441",
+	borderRadius: "50%",
+	animation: `${searchLoadingSpin} 700ms linear infinite`,
+});
+
 export const resultsPanel = style({
 	position: "absolute",
 	top: "calc(100% + 0.45rem)",
@@ -201,15 +216,6 @@ export const resultKind = style({
 	fontWeight: 700,
 	letterSpacing: "0.06em",
 	textTransform: "uppercase",
-});
-
-export const resultSnippet = style({
-	overflow: "hidden",
-	color: "#718176",
-	fontSize: "0.65rem",
-	lineHeight: 1.35,
-	textOverflow: "ellipsis",
-	whiteSpace: "nowrap",
 });
 
 export const searchStatus = style({

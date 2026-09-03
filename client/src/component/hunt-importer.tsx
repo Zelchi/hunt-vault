@@ -1,6 +1,6 @@
 import { onCleanup, onMount, Show } from "solid-js";
-import * as styles from "@/styles/hunt-importer.css";
-import type { HuntImporterProps, PreviewSectionProps } from "@/types/components";
+import * as styles from "@/style/hunt-importer.css";
+import type { HuntImporterProps, PreviewSectionProps } from "@/type/components";
 
 const PreviewSection = (props: PreviewSectionProps) => {
 	let previewElement: HTMLDivElement | undefined;

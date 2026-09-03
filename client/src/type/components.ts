@@ -1,5 +1,5 @@
 import type { JSX } from "solid-js";
-import type { HuntRecord, View } from "@/types/hunt-common";
+import type { HuntRecord, View } from "@/type/hunt-common";
 
 export type IconProps = {
 	size?: number;

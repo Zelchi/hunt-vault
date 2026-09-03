@@ -1,14 +1,11 @@
+import { SYNC_API_KEY_STORAGE_KEY, SYNC_CURSOR_STATE_KEY } from "@/const/storage";
+import { SYNC_API_URL, SYNC_MAX_PUSH_BATCH } from "@/const/sync";
 import { database } from "@/lib/database";
 import { validateHuntPartyReport } from "@/lib/hunt-party";
 import { getPartyHuntFingerprint } from "@/lib/hunt-party-fingerprint";
-import type { HuntRecord, HuntSyncMutation } from "@/types/hunt-common";
-import type { ParsedHuntParty } from "@/types/hunt-party";
+import type { HuntRecord, HuntSyncMutation } from "@/type/hunt-common";
+import type { ParsedHuntParty } from "@/type/hunt-party";
 
-const defaultSyncAPIURL = import.meta.env.DEV ? "http://localhost:8080" : `${window.location.origin}/api`;
-const syncAPIURL = (import.meta.env.VITE_SYNC_API_URL?.trim() || defaultSyncAPIURL).replace(/\/+$/, "");
-const syncAPIKeyStorageKey = "hunt-vault:sync-api-key";
-const cursorStateKey = "party-hunts-cursor";
-const maxPushBatch = 500;
 const listeners = new Set<() => void>();
 let activeSync: Promise<void> | undefined;
 let syncRequested = false;
@@ -34,19 +31,19 @@ type PullResponse = {
 
 const getStoredSyncAPIKey = () => {
 	try {
-		return localStorage.getItem(syncAPIKeyStorageKey)?.trim() || "";
+		return localStorage.getItem(SYNC_API_KEY_STORAGE_KEY)?.trim() || "";
 	} catch {
 		return "";
 	}
 };
 
 const removeStoredSyncAPIKey = () => {
-	localStorage.removeItem(syncAPIKeyStorageKey);
+	localStorage.removeItem(SYNC_API_KEY_STORAGE_KEY);
 };
 
 const saveSyncAPIKey = (apiKey: string) => {
 	try {
-		localStorage.setItem(syncAPIKeyStorageKey, apiKey.trim());
+		localStorage.setItem(SYNC_API_KEY_STORAGE_KEY, apiKey.trim());
 		return true;
 	} catch {
 		return false;
@@ -80,21 +77,25 @@ const createPartyHuntUpsertMutation = (record: HuntRecord, party: ParsedHuntPart
 		mutationId: crypto.randomUUID(),
 		action: "upsert",
 		sessionData: party.sessionData,
-		members: party.members.map((member) => member.name),
+		members: party.members.map((member) => {
+			return member.name;
+		}),
 		payload: { createdAt: record.createdAt, rawText: record.rawText },
 	};
 };
 
-const createPartyHuntDeleteMutation = (fingerprint: string): HuntSyncMutation => ({
-	fingerprint,
-	mutationId: crypto.randomUUID(),
-	action: "delete",
-});
+const createPartyHuntDeleteMutation = (fingerprint: string): HuntSyncMutation => {
+	return {
+		fingerprint,
+		mutationId: crypto.randomUUID(),
+		action: "delete",
+	};
+};
 
 const requestJSON = async <Response>(path: string, init?: RequestInit): Promise<Response> => {
 	const apiKey = getStoredSyncAPIKey();
 	const authHeaders: Record<string, string> = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
-	const response = await fetch(`${syncAPIURL}${path}`, {
+	const response = await fetch(`${SYNC_API_URL}${path}`, {
 		...init,
 		headers: {
 			Accept: "application/json",
@@ -114,7 +115,7 @@ const pushPendingHunts = async () => {
 		return;
 	}
 	while (true) {
-		const mutations = await database.syncOutbox.limit(maxPushBatch).toArray();
+		const mutations = await database.syncOutbox.limit(SYNC_MAX_PUSH_BATCH).toArray();
 		if (mutations.length === 0) {
 			return;
 		}
@@ -123,16 +124,16 @@ const pushPendingHunts = async () => {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
-				hunts: mutations.map((mutation) =>
-					mutation.action === "delete"
+				hunts: mutations.map((mutation) => {
+					return mutation.action === "delete"
 						? { fingerprint: mutation.fingerprint, deleted: true }
 						: {
 								fingerprint: mutation.fingerprint,
 								session_data: mutation.sessionData,
 								members: mutation.members,
 								payload: mutation.payload,
-							},
-				),
+							};
+				}),
 			}),
 		});
 		const accepted = new Set(response.accepted);
@@ -204,20 +205,22 @@ const mergePullPage = async (page: PullResponse) => {
 			if (!record) {
 				continue;
 			}
-			const obsoleteKeys = matchingKeys.filter((key) => key !== record.id);
+			const obsoleteKeys = matchingKeys.filter((key) => {
+				return key !== record.id;
+			});
 			if (obsoleteKeys.length > 0) {
 				await database.hunts.bulkDelete(obsoleteKeys);
 			}
 			await database.hunts.put(record);
 			changed = true;
 		}
-		await database.syncState.put({ key: cursorStateKey, value: String(page.cursor) });
+		await database.syncState.put({ key: SYNC_CURSOR_STATE_KEY, value: String(page.cursor) });
 	});
 	return changed;
 };
 
 const pullRemoteHunts = async () => {
-	let cursor = Number((await database.syncState.get(cursorStateKey))?.value || 0);
+	let cursor = Number((await database.syncState.get(SYNC_CURSOR_STATE_KEY))?.value || 0);
 	let changed = false;
 	while (true) {
 		const page = await requestJSON<PullResponse>(`/v1/sync/pull?since=${encodeURIComponent(cursor)}`);
@@ -253,7 +256,9 @@ const synchronizePartyHunts = (): Promise<void> => {
 		})().finally(() => {
 			activeSync = undefined;
 			if (syncRequested) {
-				void synchronizePartyHunts().catch(() => undefined);
+				void synchronizePartyHunts().catch(() => {
+					return undefined;
+				});
 			}
 		});
 	}
@@ -263,7 +268,7 @@ const synchronizePartyHunts = (): Promise<void> => {
 const consumeEventStream = async (signal: AbortSignal, onConnected: () => void) => {
 	const apiKey = getStoredSyncAPIKey();
 	const authHeaders: Record<string, string> = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
-	const response = await fetch(`${syncAPIURL}/v1/sync/events`, {
+	const response = await fetch(`${SYNC_API_URL}/v1/sync/events`, {
 		headers: {
 			Accept: "text/event-stream",
 			...authHeaders,
@@ -291,7 +296,9 @@ const consumeEventStream = async (signal: AbortSignal, onConnected: () => void) 
 			buffer = buffer.slice(boundary.index + boundary[0].length);
 			const event = message
 				.split("\n")
-				.find((line) => line.startsWith("event:"))
+				.find((line) => {
+					return line.startsWith("event:");
+				})
 				?.slice("event:".length)
 				.trim();
 			if (event === "ready" || event === "sync") {

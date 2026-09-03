@@ -1,4 +1,4 @@
-import type { HuntMetric } from "@/types/hunt-common";
+import type { HuntMetric } from "@/type/hunt-common";
 
 export type PartyMember = {
 	name: string;

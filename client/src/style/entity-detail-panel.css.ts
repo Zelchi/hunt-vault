@@ -215,6 +215,24 @@ export const itemSourceValue = style({
 	overflowWrap: "anywhere",
 });
 
+export const imbuementMaterialValue = style({
+	display: "flex",
+	alignItems: "center",
+	minWidth: 0,
+	gap: "0.45rem",
+});
+
+export const imbuementMaterialIcon = style({
+	flex: "0 0 auto",
+	width: "1.65rem",
+	height: "1.65rem",
+	padding: "0.15rem",
+	border: "1px solid #2b4638",
+	background: "#0a0e0c",
+	objectFit: "contain",
+	imageRendering: "pixelated",
+});
+
 export const itemSourceLink = style({
 	alignSelf: "flex-start",
 	padding: "0.45rem 0.65rem",

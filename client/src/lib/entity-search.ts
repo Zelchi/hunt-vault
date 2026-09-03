@@ -1,13 +1,24 @@
-const TIBIA_DATA_API = "https://api.tibiadata.com/v4";
-const TIBIA_LIBRARY_IMAGES = "https://static.tibia.com/images/library";
-const TIBIA_WIKI_API = "https://www.tibiawiki.com.br/api.php";
-export type EntityKind = "monster" | "spell" | "rune" | "item";
+import Fuse from "fuse.js";
+
+import {
+	IMBUEMENT_LEVEL_3_IMAGES,
+	TIBIA_WIKI_API,
+	TIBIA_WIKI_ORIGIN,
+	WIKI_CATALOG_CACHE_KEY,
+	WIKI_CATALOG_CACHE_MAX_AGE,
+	WIKI_CATALOG_CATEGORIES,
+	WIKI_CATALOG_REQUESTS,
+	WIKI_SEARCH_CACHE_KEY,
+	WIKI_SEARCH_CACHE_MAX_AGE,
+} from "@/const/wiki";
+
+export type EntityKind = "monster" | "spell" | "rune" | "item" | "imbuement";
 
 export type EntitySearchResult = {
 	id: string;
 	title: string;
 	kind: EntityKind;
-	source: "tibiadata" | "tibiawiki";
+	source: "tibiawiki";
 	isBoss?: boolean;
 	lookupId?: string;
 	imageUrl?: string;
@@ -18,26 +29,46 @@ export type EntityCatalog = {
 	monsters: CatalogEntity[];
 	spells: CatalogEntity[];
 	runes: CatalogEntity[];
+	imbuements: CatalogEntity[];
 };
 
 type CatalogEntity = {
 	id: string;
 	name: string;
 	kind: EntityKind;
-	formula?: string;
+	lookupId?: string;
 	imageUrl?: string;
 };
 
-const catalogCacheKey = "hunt-vault:entity-catalog:v4";
-const catalogCacheMaxAge = 24 * 60 * 60 * 1000;
-const emptyCatalog: EntityCatalog = { monsters: [], spells: [], runes: [] };
-
-const getWikiImageUrl = (title: string) => {
-	const fileTitle = title.replace(/\s+\(criatura\)$/i, "").trim().replace(/\s+/g, "_");
-	return `https://www.tibiawiki.com.br/wiki/Special:FilePath/${encodeURIComponent(`${fileTitle}.gif`)}`;
+type CatalogSearchEntry = {
+	entity: CatalogEntity;
+	name: string;
+	id: string;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+const emptyCatalog: EntityCatalog = { monsters: [], spells: [], runes: [], imbuements: [] };
+let catalogSearchIndex: { catalog: EntityCatalog; fuse: Fuse<CatalogSearchEntry> } | undefined;
+const wikiCategoryCache = new Map<string, { fetchedAt: number; pages: Record<string, unknown>[] }>();
+type SearchCacheEntry = { savedAt: number; results: EntitySearchResult[] };
+let wikiSearchCache: Record<string, SearchCacheEntry> | undefined;
+
+const getWikiImageUrl = (title: string) => {
+	const fileTitle = title
+		.replace(/\s+\(criatura\)$/i, "")
+		.trim()
+		.replace(/\s+/g, "_");
+	return `${TIBIA_WIKI_ORIGIN}/wiki/Special:FilePath/${encodeURIComponent(`${fileTitle}.gif`)}`;
+};
+
+const getImbuementImageUrl = (title: string) => {
+	const imbuementName = normalizeSearchText(title).replace(/\s+\([^)]*\)$/i, "");
+	const fileName = IMBUEMENT_LEVEL_3_IMAGES[imbuementName];
+	return fileName ? `${TIBIA_WIKI_ORIGIN}/wiki/Special:FilePath/${encodeURIComponent(fileName)}` : getWikiImageUrl(title);
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+	return typeof value === "object" && value !== null;
+};
 
 const fetchJson = async (url: string, signal?: AbortSignal): Promise<unknown> => {
 	const response = await fetch(url, { signal });
@@ -49,16 +80,143 @@ const fetchJson = async (url: string, signal?: AbortSignal): Promise<unknown> =>
 	return response.json();
 };
 
-export const normalizeSearchText = (value: string) =>
-	value
+export const normalizeSearchText = (value: string) => {
+	return value
 		.normalize("NFD")
 		.replace(/[\u0300-\u036f]/g, "")
 		.toLocaleLowerCase()
 		.trim();
+};
 
-const isEntityKind = (value: unknown): value is EntityKind => value === "monster" || value === "spell" || value === "rune" || value === "item";
+const isEntityKind = (value: unknown): value is EntityKind => {
+	return value === "monster" || value === "spell" || value === "rune" || value === "item" || value === "imbuement";
+};
 
-const readCachedEntities = (value: unknown, expectedKind?: EntityKind): CatalogEntity[] => {
+const isCachedSearchResult = (value: unknown): value is EntitySearchResult => {
+	return (
+		isRecord(value) &&
+		typeof value.id === "string" &&
+		typeof value.title === "string" &&
+		isEntityKind(value.kind) &&
+		value.source === "tibiawiki"
+	);
+};
+
+const mergeCachedResults = (currentResults: EntitySearchResult[], nextResults: EntitySearchResult[]) => {
+	const uniqueResults = new Map<string, EntitySearchResult>();
+	for (const result of [...currentResults, ...nextResults]) {
+		const key = `${result.kind}:${normalizeSearchText(result.title)}`;
+		const existingResult = uniqueResults.get(key);
+		if (!existingResult) {
+			uniqueResults.set(key, result);
+		} else if (result.isBoss && !existingResult.isBoss) {
+			uniqueResults.set(key, { ...existingResult, isBoss: true, snippet: "Boss" });
+		}
+	}
+
+	return [...uniqueResults.values()];
+};
+
+const readWikiSearchCache = () => {
+	if (wikiSearchCache) {
+		return wikiSearchCache;
+	}
+
+	wikiSearchCache = {};
+	try {
+		const rawValue = localStorage.getItem(WIKI_SEARCH_CACHE_KEY);
+		if (!rawValue) {
+			return wikiSearchCache;
+		}
+
+		const parsed: unknown = JSON.parse(rawValue);
+		if (!isRecord(parsed)) {
+			return wikiSearchCache;
+		}
+
+		const now = Date.now();
+		for (const [query, entry] of Object.entries(parsed)) {
+			if (!isRecord(entry) || typeof entry.savedAt !== "number" || !Array.isArray(entry.results)) {
+				continue;
+			}
+			if (now - entry.savedAt >= WIKI_SEARCH_CACHE_MAX_AGE) {
+				continue;
+			}
+
+			const results = entry.results.filter(isCachedSearchResult);
+			if (results.length > 0) {
+				wikiSearchCache[query] = { savedAt: entry.savedAt, results };
+			}
+		}
+	} catch {
+		wikiSearchCache = {};
+	}
+
+	return wikiSearchCache;
+};
+
+const writeWikiSearchCache = () => {
+	localStorage.setItem(WIKI_SEARCH_CACHE_KEY, JSON.stringify(readWikiSearchCache()));
+};
+
+const rankCachedResults = (query: string, results: EntitySearchResult[]) => {
+	const normalizedQuery = normalizeSearchText(query);
+	if (normalizedQuery.length < 2 || results.length === 0) {
+		return [];
+	}
+
+	const fuse = new Fuse(
+		results.map((result) => {
+			return {
+				result,
+				title: normalizeSearchText(result.title),
+				snippet: normalizeSearchText(result.snippet ?? ""),
+			};
+		}),
+		{
+			keys: [
+				{ name: "title", weight: 0.9 },
+				{ name: "snippet", weight: 0.1 },
+			],
+			ignoreLocation: true,
+			minMatchCharLength: 2,
+			threshold: 0.42,
+		},
+	);
+
+	return fuse.search(normalizedQuery, { limit: 50 }).map(({ item }) => {
+		return item.result;
+	});
+};
+
+export const getCachedSearchResults = (query: string) => {
+	const cache = readWikiSearchCache();
+	const normalizedQuery = normalizeSearchText(query);
+	if (normalizedQuery.length < 2) {
+		return [];
+	}
+
+	const allResults = Object.values(cache).flatMap((entry) => {
+		return entry.results;
+	});
+	return rankCachedResults(query, mergeCachedResults(cache[normalizedQuery]?.results ?? [], allResults));
+};
+
+export const cacheSearchResults = (query: string, results: EntitySearchResult[]) => {
+	const normalizedQuery = normalizeSearchText(query);
+	if (normalizedQuery.length < 2 || results.length === 0) {
+		return;
+	}
+
+	const cache = readWikiSearchCache();
+	cache[normalizedQuery] = {
+		savedAt: Date.now(),
+		results: mergeCachedResults(cache[normalizedQuery]?.results ?? [], results),
+	};
+	writeWikiSearchCache();
+};
+
+const readCachedEntities = (value: unknown, expectedKind: EntityKind): CatalogEntity[] => {
 	if (!Array.isArray(value)) {
 		return [];
 	}
@@ -67,15 +225,16 @@ const readCachedEntities = (value: unknown, expectedKind?: EntityKind): CatalogE
 		if (!isRecord(item) || typeof item.id !== "string" || typeof item.name !== "string" || !isEntityKind(item.kind)) {
 			return [];
 		}
-		if (expectedKind && item.kind !== expectedKind) {
+		if (item.kind !== expectedKind) {
 			return [];
 		}
+
 		return [
 			{
 				id: item.id,
 				name: item.name,
 				kind: item.kind,
-				formula: typeof item.formula === "string" ? item.formula : undefined,
+				lookupId: typeof item.lookupId === "string" ? item.lookupId : item.name,
 				imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : undefined,
 			},
 		];
@@ -84,7 +243,7 @@ const readCachedEntities = (value: unknown, expectedKind?: EntityKind): CatalogE
 
 const readCachedCatalog = () => {
 	try {
-		const rawValue = localStorage.getItem(catalogCacheKey);
+		const rawValue = localStorage.getItem(WIKI_CATALOG_CACHE_KEY);
 		if (!rawValue) {
 			return undefined;
 		}
@@ -98,8 +257,13 @@ const readCachedCatalog = () => {
 			monsters: readCachedEntities(parsed.catalog.monsters, "monster"),
 			spells: readCachedEntities(parsed.catalog.spells, "spell"),
 			runes: readCachedEntities(parsed.catalog.runes, "rune"),
+			imbuements: readCachedEntities(parsed.catalog.imbuements, "imbuement"),
 		};
-		if (catalog.monsters.length + catalog.spells.length + catalog.runes.length === 0) {
+		if (
+			Object.values(catalog).every((entities) => {
+				return entities.length === 0;
+			})
+		) {
 			return undefined;
 		}
 
@@ -110,82 +274,8 @@ const readCachedCatalog = () => {
 };
 
 const writeCachedCatalog = (catalog: EntityCatalog) => {
-	localStorage.setItem(catalogCacheKey, JSON.stringify({ savedAt: Date.now(), catalog }));
+	localStorage.setItem(WIKI_CATALOG_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), catalog }));
 };
-
-const getSpellImageUrl = (spellId: string) => `${TIBIA_LIBRARY_IMAGES}/${encodeURIComponent(spellId)}.png`;
-
-const readCatalogEntities = (value: unknown, collectionKey: "creature_list" | "spell_list", kind: "monster" | "spell") => {
-	if (!isRecord(value)) {
-		return [];
-	}
-
-	const collection = value[kind === "monster" ? "creatures" : "spells"];
-	if (!isRecord(collection) || !Array.isArray(collection[collectionKey])) {
-		return [];
-	}
-
-	return collection[collectionKey].flatMap((item): CatalogEntity[] => {
-		if (!isRecord(item) || typeof item.name !== "string") {
-			return [];
-		}
-
-		const id = typeof item.race === "string" ? item.race : typeof item.spell_id === "string" ? item.spell_id : item.name;
-		const formula = typeof item.formula === "string" ? item.formula : undefined;
-		const imageUrl = typeof item.image_url === "string" ? item.image_url : kind === "spell" ? getSpellImageUrl(id) : undefined;
-		const entityKind: EntityKind = kind === "spell" && item.type_rune === true ? "rune" : kind;
-
-		return [{ id, name: item.name, kind: entityKind, formula, imageUrl }];
-	});
-};
-
-export const loadEntityCatalog = async (): Promise<EntityCatalog> => {
-	const cached = readCachedCatalog();
-	if (cached && Date.now() - cached.savedAt < catalogCacheMaxAge) {
-		return cached.catalog;
-	}
-
-	const [creaturesResponse, spellsResponse] = await Promise.allSettled([
-		fetchJson(`${TIBIA_DATA_API}/creatures`),
-		fetchJson(`${TIBIA_DATA_API}/spells`),
-	]);
-
-	const remoteMonsters =
-		creaturesResponse.status === "fulfilled" ? readCatalogEntities(creaturesResponse.value, "creature_list", "monster") : [];
-	const remoteSpellEntities =
-		spellsResponse.status === "fulfilled" ? readCatalogEntities(spellsResponse.value, "spell_list", "spell") : [];
-	const remoteSpells = remoteSpellEntities.filter((entity) => entity.kind === "spell");
-	const remoteRunes = remoteSpellEntities.filter((entity) => entity.kind === "rune");
-	const nextCatalog: EntityCatalog = {
-		monsters: remoteMonsters.length > 0 ? remoteMonsters : (cached?.catalog.monsters ?? []),
-		spells: remoteSpells.length > 0 ? remoteSpells : (cached?.catalog.spells ?? []),
-		runes: remoteRunes.length > 0 ? remoteRunes : (cached?.catalog.runes ?? []),
-	};
-
-	if (nextCatalog.monsters.length + nextCatalog.spells.length + nextCatalog.runes.length > 0) {
-		writeCachedCatalog(nextCatalog);
-		return nextCatalog;
-	}
-
-	return emptyCatalog;
-};
-
-const catalogResult = (entity: CatalogEntity): EntitySearchResult => ({
-	id: `${entity.kind}:${entity.id}`,
-	title: entity.name,
-	kind: entity.kind,
-	source: "tibiadata",
-	lookupId: entity.id,
-	imageUrl: entity.imageUrl,
-	snippet:
-		entity.kind === "monster"
-			? "Catálogo de criaturas"
-			: entity.kind === "rune"
-				? "Catálogo de runas"
-				: entity.formula
-					? `Conjuração: ${entity.formula}`
-					: "Catálogo de habilidades",
-});
 
 const getMatchRank = (value: string, query: string) => {
 	if (value === query) {
@@ -205,10 +295,9 @@ const readWikiSearchPages = (value: unknown) => {
 		return [];
 	}
 
-	return value.query.search.filter(
-		(page): page is Record<string, unknown> =>
-			isRecord(page) && typeof page.title === "string" && (typeof page.pageid === "number" || typeof page.pageid === "undefined"),
-	);
+	return value.query.search.filter((page): page is Record<string, unknown> => {
+		return isRecord(page) && typeof page.title === "string" && (typeof page.pageid === "number" || typeof page.pageid === "undefined");
+	});
 };
 
 const readWikiItemPages = (value: unknown) => {
@@ -216,10 +305,9 @@ const readWikiItemPages = (value: unknown) => {
 		return [];
 	}
 
-	return value.query.pages.filter(
-		(page): page is Record<string, unknown> =>
-			isRecord(page) && typeof page.title === "string" && Array.isArray(page.categories),
-	);
+	return value.query.pages.filter((page): page is Record<string, unknown> => {
+		return isRecord(page) && typeof page.title === "string" && Array.isArray(page.categories);
+	});
 };
 
 const readWikiCreaturePages = (value: unknown) => {
@@ -227,10 +315,169 @@ const readWikiCreaturePages = (value: unknown) => {
 		return [];
 	}
 
-	return value.query.pages.filter(
-		(page): page is Record<string, unknown> =>
-			isRecord(page) && typeof page.title === "string" && typeof page.pageid === "number" && Array.isArray(page.revisions),
+	return value.query.pages.filter((page): page is Record<string, unknown> => {
+		return isRecord(page) && typeof page.title === "string" && typeof page.pageid === "number" && Array.isArray(page.revisions);
+	});
+};
+
+const readWikiCategoryMembers = (value: unknown) => {
+	if (!isRecord(value) || !isRecord(value.query) || !Array.isArray(value.query.categorymembers)) {
+		return [];
+	}
+
+	return value.query.categorymembers.filter((member): member is Record<string, unknown> => {
+		return isRecord(member) && typeof member.title === "string" && typeof member.pageid === "number";
+	});
+};
+
+const readWikiCategoryContinuation = (value: unknown) => {
+	if (!isRecord(value) || !isRecord(value.continue) || typeof value.continue.cmcontinue !== "string") {
+		return undefined;
+	}
+
+	return value.continue.cmcontinue;
+};
+
+const loadWikiCategoryMembers = async (categoryTitle: string, signal?: AbortSignal, forceRefresh = false) => {
+	const cached = wikiCategoryCache.get(categoryTitle);
+	if (!forceRefresh && cached && Date.now() - cached.fetchedAt < WIKI_CATALOG_CACHE_MAX_AGE) {
+		return cached.pages;
+	}
+
+	const pages: Record<string, unknown>[] = [];
+	let continuation: string | undefined;
+	const requestedContinuations = new Set<string>();
+
+	do {
+		const params = new URLSearchParams({
+			action: "query",
+			list: "categorymembers",
+			cmtitle: categoryTitle,
+			cmnamespace: "0",
+			cmlimit: "500",
+			format: "json",
+			formatversion: "2",
+			origin: "*",
+		});
+		if (continuation) {
+			params.set("cmcontinue", continuation);
+		}
+
+		const payload = await fetchJson(`${TIBIA_WIKI_API}?${params.toString()}`, signal);
+		pages.push(...readWikiCategoryMembers(payload));
+		const nextContinuation = readWikiCategoryContinuation(payload);
+		if (!nextContinuation || requestedContinuations.has(nextContinuation)) {
+			continuation = undefined;
+		} else {
+			requestedContinuations.add(nextContinuation);
+			continuation = nextContinuation;
+		}
+	} while (continuation);
+
+	wikiCategoryCache.set(categoryTitle, { fetchedAt: Date.now(), pages });
+	return pages;
+};
+
+const createCatalogEntities = (pages: Record<string, unknown>[], kind: EntityKind): CatalogEntity[] => {
+	const seenTitles = new Set<string>();
+
+	return pages.flatMap((page): CatalogEntity[] => {
+		const title = page.title as string;
+		const normalizedTitle = normalizeSearchText(title);
+		if (seenTitles.has(normalizedTitle)) {
+			return [];
+		}
+		seenTitles.add(normalizedTitle);
+
+		return [
+			{
+				id: `${kind}:wiki:${page.pageid}`,
+				name: title,
+				kind,
+				lookupId: title,
+				imageUrl: kind === "imbuement" ? getImbuementImageUrl(title) : getWikiImageUrl(title),
+			},
+		];
+	});
+};
+
+export const loadEntityCatalog = async (): Promise<EntityCatalog> => {
+	const cached = readCachedCatalog();
+	if (cached && Date.now() - cached.savedAt < WIKI_CATALOG_CACHE_MAX_AGE) {
+		return cached.catalog;
+	}
+
+	const categoryResponses = await Promise.allSettled(
+		WIKI_CATALOG_REQUESTS.map(({ title }) => {
+			return loadWikiCategoryMembers(title);
+		}),
 	);
+	const nextCatalog: EntityCatalog = { ...emptyCatalog };
+
+	WIKI_CATALOG_REQUESTS.forEach(({ key, kind }, index) => {
+		const response = categoryResponses[index];
+		if (response?.status === "fulfilled") {
+			nextCatalog[key] = createCatalogEntities(response.value, kind);
+		}
+	});
+
+	if (
+		Object.values(nextCatalog).some((entities) => {
+			return entities.length > 0;
+		})
+	) {
+		writeCachedCatalog(nextCatalog);
+		return nextCatalog;
+	}
+
+	return cached?.catalog ?? emptyCatalog;
+};
+
+const catalogResult = (entity: CatalogEntity): EntitySearchResult => {
+	return {
+		id: entity.id,
+		title: entity.name,
+		kind: entity.kind,
+		source: "tibiawiki",
+		lookupId: entity.lookupId ?? entity.name,
+		imageUrl: entity.imageUrl,
+		snippet:
+			entity.kind === "monster"
+				? "Criatura"
+				: entity.kind === "rune"
+					? "Runa"
+					: entity.kind === "imbuement"
+						? "Imbuement"
+						: "Habilidade",
+	};
+};
+
+const getCatalogSearchFuse = (catalog: EntityCatalog) => {
+	if (catalogSearchIndex?.catalog === catalog) {
+		return catalogSearchIndex.fuse;
+	}
+
+	const entries: CatalogSearchEntry[] = [...catalog.monsters, ...catalog.spells, ...catalog.runes, ...catalog.imbuements].map(
+		(entity) => {
+			return {
+				entity,
+				name: normalizeSearchText(entity.name),
+				id: normalizeSearchText(entity.id),
+			};
+		},
+	);
+	const fuse = new Fuse(entries, {
+		keys: [
+			{ name: "name", weight: 0.9 },
+			{ name: "id", weight: 0.1 },
+		],
+		ignoreLocation: true,
+		minMatchCharLength: 2,
+		threshold: 0.42,
+	});
+
+	catalogSearchIndex = { catalog, fuse };
+	return fuse;
 };
 
 const readWikiRevisionContent = (page: Record<string, unknown>) => {
@@ -246,23 +493,62 @@ const readWikiRevisionContent = (page: Record<string, unknown>) => {
 	return typeof revision.slots.main.content === "string" ? revision.slots.main.content : "";
 };
 
-const isItemPage = (page: Record<string, unknown>) =>
-	(page.categories as unknown[]).some(
-		(category) => isRecord(category) && typeof category.title === "string" && normalizeSearchText(category.title).startsWith("categoria:itens"),
-	);
-
-const isCreaturePage = (page: Record<string, unknown>) =>
-	/\{\{\s*Infobox(?:[_ ](?:Creature|Criatura))\b/i.test(readWikiRevisionContent(page));
-
-const isBossPage = (page: Record<string, unknown>) =>
-	Array.isArray(page.categories) &&
-		(page.categories as unknown[]).some(
-			(category) =>
+const hasWikiCategory = (page: Record<string, unknown>, prefixes: string[]) => {
+	return (
+		Array.isArray(page.categories) &&
+		(page.categories as unknown[]).some((category) => {
+			return (
 				isRecord(category) &&
 				typeof category.title === "string" &&
-				(normalizeSearchText(category.title) === "categoria:bosses" || normalizeSearchText(category.title).startsWith("categoria:bosses ")),
-		) ||
-	/\|\s*isboss\s*=\s*(?:sim|yes|true)\b/i.test(readWikiRevisionContent(page));
+				prefixes.some((prefix) => {
+					return normalizeSearchText(category.title as string).startsWith(prefix);
+				})
+			);
+		})
+	);
+};
+
+const isItemPage = (page: Record<string, unknown>) => {
+	return (page.categories as unknown[]).some((category) => {
+		return (
+			isRecord(category) && typeof category.title === "string" && normalizeSearchText(category.title).startsWith("categoria:itens")
+		);
+	});
+};
+
+const isCreaturePage = (page: Record<string, unknown>) => {
+	return /\{\{\s*Infobox(?:[_ ](?:Creature|Criatura))\b/i.test(readWikiRevisionContent(page));
+};
+
+const isRunePage = (page: Record<string, unknown>) => {
+	return (
+		hasWikiCategory(page, ["categoria:runas"]) ||
+		/\{\{\s*Infobox(?:[_ ](?:Rune|Runa))\b/i.test(readWikiRevisionContent(page)) ||
+		/\(\s*runa\s*\)$/i.test(page.title as string)
+	);
+};
+
+const isSpellPage = (page: Record<string, unknown>) => {
+	return (
+		hasWikiCategory(page, ["categoria:magias", "categoria:spells", "categoria:habilidades"]) ||
+		/\{\{\s*Infobox(?:[_ ](?:Spell|Magia|Habilidade))\b/i.test(readWikiRevisionContent(page))
+	);
+};
+
+const isBossPage = (page: Record<string, unknown>) => {
+	return (
+		(Array.isArray(page.categories) &&
+			(page.categories as unknown[]).some((category) => {
+				return (
+					isRecord(category) &&
+					typeof category.title === "string" &&
+					(normalizeSearchText(category.title) === "categoria:bosses" ||
+						normalizeSearchText(category.title).startsWith("categoria:bosses "))
+				);
+			})) ||
+		/\|\s*isboss\s*=\s*(?:sim|yes|true)\b/i.test(readWikiRevisionContent(page))
+	);
+};
 
 export const searchWikiItems = async (query: string, signal?: AbortSignal): Promise<EntitySearchResult[]> => {
 	const normalizedQuery = normalizeSearchText(query);
@@ -282,12 +568,18 @@ export const searchWikiItems = async (query: string, signal?: AbortSignal): Prom
 		origin: "*",
 	});
 	const searchPayload = await fetchJson(`${TIBIA_WIKI_API}?${params.toString()}`, signal);
-	const searchPages = readWikiSearchPages(searchPayload).filter((page) => typeof page.pageid === "number");
+	const searchPages = readWikiSearchPages(searchPayload).filter((page) => {
+		return typeof page.pageid === "number";
+	});
 	if (searchPages.length === 0) {
 		return [];
 	}
 
-	const pageIDs = searchPages.map((page) => String(page.pageid)).join("|");
+	const pageIDs = searchPages
+		.map((page) => {
+			return String(page.pageid);
+		})
+		.join("|");
 	const categoryParams = new URLSearchParams({
 		action: "query",
 		pageids: pageIDs,
@@ -317,7 +609,7 @@ export const searchWikiItems = async (query: string, signal?: AbortSignal): Prom
 					source: "tibiawiki",
 					lookupId: title,
 					imageUrl: getWikiImageUrl(title),
-					snippet: "Item da TibiaWiki",
+					snippet: "Item",
 				},
 			];
 		})
@@ -326,7 +618,7 @@ export const searchWikiItems = async (query: string, signal?: AbortSignal): Prom
 				getMatchRank(normalizeSearchText(left.title), normalizedQuery) -
 				getMatchRank(normalizeSearchText(right.title), normalizedQuery);
 			return rankDifference || left.title.localeCompare(right.title);
-	});
+		});
 };
 
 export const searchWikiCreatures = async (query: string, signal?: AbortSignal): Promise<EntitySearchResult[]> => {
@@ -347,12 +639,18 @@ export const searchWikiCreatures = async (query: string, signal?: AbortSignal): 
 		origin: "*",
 	});
 	const searchPayload = await fetchJson(`${TIBIA_WIKI_API}?${params.toString()}`, signal);
-	const searchPages = readWikiSearchPages(searchPayload).filter((page) => typeof page.pageid === "number");
+	const searchPages = readWikiSearchPages(searchPayload).filter((page) => {
+		return typeof page.pageid === "number";
+	});
 	if (searchPages.length === 0) {
 		return [];
 	}
 
-	const pageIDs = searchPages.map((page) => String(page.pageid)).join("|");
+	const pageIDs = searchPages
+		.map((page) => {
+			return String(page.pageid);
+		})
+		.join("|");
 	const detailsParams = new URLSearchParams({
 		action: "query",
 		pageids: pageIDs,
@@ -384,7 +682,7 @@ export const searchWikiCreatures = async (query: string, signal?: AbortSignal): 
 					source: "tibiawiki",
 					isBoss: isBossPage(page),
 					imageUrl: getWikiImageUrl(title),
-					snippet: isBossPage(page) ? "Boss da TibiaWiki" : "Criatura da TibiaWiki",
+					snippet: isBossPage(page) ? "Boss" : "Criatura",
 				},
 			];
 		})
@@ -396,42 +694,144 @@ export const searchWikiCreatures = async (query: string, signal?: AbortSignal): 
 		});
 };
 
-export const searchCatalog = (catalog: EntityCatalog, query: string) => {
+const searchWikiSpellPages = async (query: string, kind: "spell" | "rune", signal?: AbortSignal): Promise<EntitySearchResult[]> => {
 	const normalizedQuery = normalizeSearchText(query);
-	if (!normalizedQuery) {
+	if (normalizedQuery.length < 2) {
 		return [];
 	}
 
-	return [...catalog.monsters, ...catalog.spells, ...catalog.runes]
-		.filter((entity) => {
-			const name = normalizeSearchText(entity.name);
-			const formula = entity.kind === "spell" ? normalizeSearchText(entity.formula ?? "") : "";
-			const id = normalizeSearchText(entity.id);
-			return name.includes(normalizedQuery) || formula.includes(normalizedQuery) || id.includes(normalizedQuery);
+	const params = new URLSearchParams({
+		action: "query",
+		list: "search",
+		srnamespace: "0",
+		srsearch: query.trim(),
+		srlimit: "20",
+		srprop: "snippet",
+		format: "json",
+		formatversion: "2",
+		origin: "*",
+	});
+	const searchPayload = await fetchJson(`${TIBIA_WIKI_API}?${params.toString()}`, signal);
+	const searchPages = readWikiSearchPages(searchPayload).filter((page) => {
+		return typeof page.pageid === "number";
+	});
+	if (searchPages.length === 0) {
+		return [];
+	}
+
+	const pageIDs = searchPages
+		.map((page) => {
+			return String(page.pageid);
+		})
+		.join("|");
+	const detailsParams = new URLSearchParams({
+		action: "query",
+		pageids: pageIDs,
+		prop: "revisions|categories",
+		rvprop: "content",
+		rvslots: "main",
+		cllimit: "100",
+		format: "json",
+		formatversion: "2",
+		origin: "*",
+	});
+	const detailsPayload = await fetchJson(`${TIBIA_WIKI_API}?${detailsParams.toString()}`, signal);
+	const seenTitles = new Set<string>();
+
+	return readWikiCreaturePages(detailsPayload)
+		.filter((page) => {
+			return kind === "rune" ? isRunePage(page) : isSpellPage(page) && !isRunePage(page);
+		})
+		.flatMap((page): EntitySearchResult[] => {
+			const title = page.title as string;
+			const normalizedTitle = normalizeSearchText(title);
+			if (seenTitles.has(normalizedTitle)) {
+				return [];
+			}
+			seenTitles.add(normalizedTitle);
+			return [
+				{
+					id: `${kind}:wiki:${page.pageid}`,
+					title,
+					kind,
+					source: "tibiawiki",
+					lookupId: title,
+					imageUrl: getWikiImageUrl(title),
+					snippet: "Rune",
+				},
+			];
 		})
 		.sort((left, right) => {
-			const leftName = normalizeSearchText(left.name);
-			const rightName = normalizeSearchText(right.name);
-			const leftFormula = left.kind === "spell" ? normalizeSearchText(left.formula ?? "") : "";
-			const rightFormula = right.kind === "spell" ? normalizeSearchText(right.formula ?? "") : "";
-			const leftId = normalizeSearchText(left.id);
-			const rightId = normalizeSearchText(right.id);
-			const leftRank = getMatchRank(leftName, normalizedQuery);
-			const rightRank = getMatchRank(rightName, normalizedQuery);
+			const rankDifference =
+				getMatchRank(normalizeSearchText(left.title), normalizedQuery) -
+				getMatchRank(normalizeSearchText(right.title), normalizedQuery);
+			return rankDifference || left.title.localeCompare(right.title);
+		});
+};
 
-			if (leftRank !== 3 || rightRank !== 3) {
-				return leftRank - rightRank;
-			}
+export const searchWikiSpells = (query: string, signal?: AbortSignal) => {
+	return searchWikiSpellPages(query, "spell", signal);
+};
 
-			const leftFormulaRank = getMatchRank(leftFormula, normalizedQuery);
-			const rightFormulaRank = getMatchRank(rightFormula, normalizedQuery);
-			if (leftFormulaRank !== 3 || rightFormulaRank !== 3) {
-				return leftFormulaRank - rightFormulaRank;
-			}
+export const searchWikiRunes = (query: string, signal?: AbortSignal) => {
+	return searchWikiSpellPages(query, "rune", signal);
+};
 
-			const leftIdRank = getMatchRank(leftId, normalizedQuery);
-			const rightIdRank = getMatchRank(rightId, normalizedQuery);
-			return leftIdRank - rightIdRank || leftName.localeCompare(rightName);
+export const searchWikiImbuements = async (query: string, signal?: AbortSignal): Promise<EntitySearchResult[]> => {
+	const normalizedQuery = normalizeSearchText(query);
+	if (normalizedQuery.length < 2) {
+		return [];
+	}
+
+	const pages = await loadWikiCategoryMembers(WIKI_CATALOG_CATEGORIES.imbuements.title, signal, true);
+	const showAllImbuements = ["imbuement", "imbuements", "encantamento", "encantamentos"].includes(normalizedQuery);
+	const matchingPages = showAllImbuements
+		? [...pages].sort((left, right) => {
+			return (left.title as string).localeCompare(right.title as string);
+		})
+		: new Fuse(
+			pages.map((page) => {
+				return {
+					page,
+					title: normalizeSearchText(page.title as string),
+				};
+			}),
+			{
+				keys: ["title"],
+				ignoreLocation: true,
+				minMatchCharLength: 2,
+				threshold: 0.42,
+			},
+		)
+			.search(normalizedQuery, { limit: 30 })
+			.map(({ item }) => {
+				return item.page;
+			});
+
+	return matchingPages.map((page): EntitySearchResult => {
+		const title = page.title as string;
+		return {
+			id: `imbuement:wiki:${page.pageid}`,
+			title,
+			kind: "imbuement",
+			source: "tibiawiki",
+			lookupId: title,
+			imageUrl: getImbuementImageUrl(title),
+			snippet: "Imbuement",
+		};
+	});
+};
+
+export const searchCatalog = (catalog: EntityCatalog, query: string) => {
+	const normalizedQuery = normalizeSearchText(query);
+	if (normalizedQuery.length < 2) {
+		return [];
+	}
+
+	return getCatalogSearchFuse(catalog)
+		.search(normalizedQuery, { limit: 50 })
+		.map(({ item }) => {
+			return item.entity;
 		})
 		.map(catalogResult);
 };

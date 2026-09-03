@@ -1,4 +1,4 @@
-import type { IconProps } from "../types/components";
+import type { IconProps } from "../type/components";
 
 const SwordIcon = (props: IconProps) => {
 	const size = props.size ?? 24;

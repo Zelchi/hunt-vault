@@ -1,10 +1,9 @@
+import { KNOWN_HUNT_METRIC_LABELS } from "@/const/hunt-party";
 import { normalizeLabel } from "@/lib/hunt-detector";
 import { resolveHuntDurationSeconds } from "@/lib/hunt-duration";
 
-import type { HuntMetric } from "@/types/hunt-common";
-import type { HuntPartyParseResult, ParsedHuntParty, PartyMember } from "@/types/hunt-party";
-
-const knownHuntMetricLabels = new Set(["loot", "supplies", "balance", "damage", "healing"]);
+import type { HuntMetric } from "@/type/hunt-common";
+import type { HuntPartyParseResult, ParsedHuntParty, PartyMember } from "@/type/hunt-party";
 
 const parseMetric = (line: string): HuntMetric | null => {
 	const match = line.match(/^([^:]+):\s*(.+)$/);
@@ -112,9 +111,11 @@ const parseHuntPartyReport = (rawText: string): ParsedHuntParty => {
 const validateHuntPartyReport = (rawText: string): HuntPartyParseResult => {
 	const parsed = parseHuntPartyReport(rawText);
 	const errors: string[] = [];
-	const lines = rawText.split(/\r?\n/).map((line) => line.trim());
+	const lines = rawText.split(/\r?\n/).map((line) => {
+		return line.trim();
+	});
 	const knownMetrics = parsed.metrics.filter((metric) => {
-		return knownHuntMetricLabels.has(normalizeLabel(metric.label));
+		return KNOWN_HUNT_METRIC_LABELS.has(normalizeLabel(metric.label));
 	});
 	const membersWithMetrics = parsed.members.filter((member) => {
 		return member.metrics.length > 0;
@@ -153,11 +154,20 @@ const validateHuntPartyReport = (rawText: string): HuntPartyParseResult => {
 		errors.push("um ou mais membros não possuem métricas extraíveis");
 	}
 
-	if (!parsed.members.some((member) => member.isLeader)) {
+	if (
+		!parsed.members.some((member) => {
+			return member.isLeader;
+		})
+	) {
 		errors.push("não encontrei um membro marcado como Leader");
 	}
 
-	const invalidValues = [...parsed.metrics, ...parsed.members.flatMap((member) => member.metrics)].filter((metric) => {
+	const invalidValues = [
+		...parsed.metrics,
+		...parsed.members.flatMap((member) => {
+			return member.metrics;
+		}),
+	].filter((metric) => {
 		return !isNumericValue(metric.value);
 	});
 

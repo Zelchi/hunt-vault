@@ -1,7 +1,7 @@
 import { Show } from "solid-js";
-import { WarningIcon } from "@/components/icons";
-import * as styles from "@/styles/confirm-modal.css";
-import type { ConfirmModalProps } from "@/types/components";
+import { WarningIcon } from "@/component/icons";
+import * as styles from "@/style/confirm-modal.css";
+import type { ConfirmModalProps } from "@/type/components";
 
 export default (props: ConfirmModalProps) => {
 	const handleBackdropClick = (event: MouseEvent) => {

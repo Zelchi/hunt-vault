@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js";
-import * as styles from "@/styles/api-key-modal.css";
-import type { APIKeyModalProps } from "@/types/components";
+import * as styles from "@/style/api-key-modal.css";
+import type { APIKeyModalProps } from "@/type/components";
 
 export default (props: APIKeyModalProps) => {
 	const [apiKey, setAPIKey] = createSignal("");

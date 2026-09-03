@@ -1,5 +1,5 @@
-import * as styles from "@/styles/app-shell.css";
-import type { View } from "@/types/hunt-common";
+import * as styles from "@/style/app-shell.css";
+import type { View } from "@/type/hunt-common";
 
 type NavbarProps = {
 	view: View;
@@ -9,14 +9,23 @@ type NavbarProps = {
 export default (props: NavbarProps) => {
 	return (
 		<nav class={styles.nav} aria-label="Navegação principal">
-			<button class={styles.navButton} data-active={props.view === "party"} type="button" onClick={() => props.onViewChange("party")}>
+			<button
+				class={styles.navButton}
+				data-active={props.view === "party"}
+				type="button"
+				onClick={() => {
+					return props.onViewChange("party");
+				}}
+			>
 				Party
 			</button>
 			<button
 				class={styles.navButton}
 				data-active={props.view === "import"}
 				type="button"
-				onClick={() => props.onViewChange("import")}
+				onClick={() => {
+					return props.onViewChange("import");
+				}}
 			>
 				Import
 			</button>

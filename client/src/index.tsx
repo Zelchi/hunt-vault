@@ -9,4 +9,6 @@ if (!root) {
 	throw new Error("Root element not found");
 }
 
-render(() => <App />, root);
+render(() => {
+	return <App />;
+}, root);

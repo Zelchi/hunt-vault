@@ -2,10 +2,10 @@ import type { Accessor } from "solid-js";
 import { createEffect, createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
-import CustomScrollbar from "@/components/custom-scrollbar";
+import CustomScrollbar from "@/component/custom-scrollbar";
 import * as dashboard from "@/lib/hunt-dashboard";
-import * as styles from "@/styles/hunt-dashboard.css";
-import type { DashboardProps } from "@/types/components";
+import * as styles from "@/style/hunt-dashboard.css";
+import type { DashboardProps } from "@/type/components";
 
 type MetricChartProps = {
 	config: dashboard.MetricConfig;
@@ -32,7 +32,12 @@ const MetricChart = (props: MetricChartProps) => {
 			return;
 		}
 
-		const data: uPlot.AlignedData = [values.map((_, index) => index + 1), values];
+		const data: uPlot.AlignedData = [
+			values.map((_, index) => {
+				return index + 1;
+			}),
+			values,
+		];
 		const width = Math.max(260, chartElement.clientWidth - 8);
 
 		if (chart) {
@@ -157,14 +162,30 @@ const KpiCard = (props: KpiCardProps) => {
 };
 
 export default (props: DashboardProps) => {
-	const partyHunts = createMemo(() => dashboard.parsePartyHunts(props.history));
-	const partySummary = createMemo(() => dashboard.calculatePartySummary(partyHunts()));
-	const partyHourlyAverages = createMemo(() => dashboard.calculatePartyHourlyAverages(partyHunts()));
-	const partyMembers = createMemo(() => dashboard.aggregatePartyMembers(partyHunts()));
-	const partyMemberCount = createMemo(() => dashboard.countPartyMembers(partyHunts()));
-	const topDamageMember = createMemo(() => dashboard.getBestPartyMember(partyMembers(), "damage"));
-	const topHealingMember = createMemo(() => dashboard.getBestPartyMember(partyMembers(), "healing"));
-	const bestSuppliesMember = createMemo(() => dashboard.getBestPartyMember(partyMembers(), "supplies", true));
+	const partyHunts = createMemo(() => {
+		return dashboard.parsePartyHunts(props.history);
+	});
+	const partySummary = createMemo(() => {
+		return dashboard.calculatePartySummary(partyHunts());
+	});
+	const partyHourlyAverages = createMemo(() => {
+		return dashboard.calculatePartyHourlyAverages(partyHunts());
+	});
+	const partyMembers = createMemo(() => {
+		return dashboard.aggregatePartyMembers(partyHunts());
+	});
+	const partyMemberCount = createMemo(() => {
+		return dashboard.countPartyMembers(partyHunts());
+	});
+	const topDamageMember = createMemo(() => {
+		return dashboard.getBestPartyMember(partyMembers(), "damage");
+	});
+	const topHealingMember = createMemo(() => {
+		return dashboard.getBestPartyMember(partyMembers(), "healing");
+	});
+	const bestSuppliesMember = createMemo(() => {
+		return dashboard.getBestPartyMember(partyMembers(), "supplies", true);
+	});
 
 	return (
 		<div class={styles.page}>
@@ -251,18 +272,22 @@ export default (props: DashboardProps) => {
 									</thead>
 									<tbody>
 										<For each={partyMembers()}>
-											{(member, index) => (
-												<tr>
-													<td>{index() + 1}</td>
-													<td>{member.name}</td>
-													<td>{member.hunts}</td>
-													<td>{member.durationHours.toFixed(2)}</td>
-													<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "damage"))}</td>
-													<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "healing"))}</td>
-													<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "supplies"))}</td>
-													<td>{dashboard.formatSignedNumber(dashboard.getMemberAverage(member, "profit"))}</td>
-												</tr>
-											)}
+											{(member, index) => {
+												return (
+													<tr>
+														<td>{index() + 1}</td>
+														<td>{member.name}</td>
+														<td>{member.hunts}</td>
+														<td>{member.durationHours.toFixed(2)}</td>
+														<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "damage"))}</td>
+														<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "healing"))}</td>
+														<td>{dashboard.formatNumber(dashboard.getMemberAverage(member, "supplies"))}</td>
+														<td>
+															{dashboard.formatSignedNumber(dashboard.getMemberAverage(member, "profit"))}
+														</td>
+													</tr>
+												);
+											}}
 										</For>
 									</tbody>
 								</table>
@@ -272,9 +297,16 @@ export default (props: DashboardProps) => {
 
 					<div class={styles.chartGrid}>
 						<For each={dashboard.partyChartMetrics}>
-							{(config) => (
-								<MetricChart config={config} values={() => dashboard.getPartyHourlyValues(partyHunts(), config)} />
-							)}
+							{(config) => {
+								return (
+									<MetricChart
+										config={config}
+										values={() => {
+											return dashboard.getPartyHourlyValues(partyHunts(), config);
+										}}
+									/>
+								);
+							}}
 						</For>
 					</div>
 				</Show>

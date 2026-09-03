@@ -1,8 +1,8 @@
-const TIBIA_DATA_API = "https://api.tibiadata.com/v4";
-const TIBIA_WIKI_API = "https://www.tibiawiki.com.br/api.php";
-const TIBIA_WIKI_ORIGIN = "https://www.tibiawiki.com.br";
+import { TIBIA_WIKI_API, TIBIA_WIKI_ORIGIN } from "@/const/wiki";
 
-const getWikiUrl = (title: string) => `https://www.tibiawiki.com.br/wiki/${encodeURIComponent(title.trim().replace(/\s+/g, "_"))}`;
+const getWikiUrl = (title: string) => {
+	return `${TIBIA_WIKI_ORIGIN}/wiki/${encodeURIComponent(title.trim().replace(/\s+/g, "_"))}`;
+};
 
 export type WikiPageDetails = {
 	title: string;
@@ -12,7 +12,7 @@ export type WikiPageDetails = {
 	imageUrl?: string;
 };
 
-export type WikiEntityKind = "monster" | "spell" | "rune" | "item";
+export type WikiEntityKind = "monster" | "spell" | "rune" | "item" | "imbuement";
 
 export type CreatureSummary = {
 	resistances: Array<{
@@ -36,13 +36,25 @@ export type ItemSummary = {
 	}>;
 };
 
-export type CreatureFallbackDetails = {
-	title: string;
-	sourceUrl: string;
-	summary: CreatureSummary;
+export type ImbuementSummary = {
+	attributes: Array<{
+		label: string;
+		value: string;
+	}>;
+	effects: Array<{
+		label: string;
+		value: string;
+	}>;
+	materials: Array<{
+		label: string;
+		value: string;
+		imageUrl: string | undefined;
+	}>;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+	return typeof value === "object" && value !== null;
+};
 
 const readContent = (value: unknown) => {
 	if (typeof value === "string") {
@@ -98,7 +110,7 @@ const splitTopLevel = (value: string, separator: string) => {
 };
 
 const readInfobox = (wikitext: string) => {
-	const match = /\{\{\s*Infobox(?:[_ ](?:Creature|Criatura|Item))?\b/i.exec(wikitext);
+	const match = /\{\{\s*Infobox(?:[_ ](?:Creature|Criatura|Item|Imbuement))?\b/i.exec(wikitext);
 	if (!match) {
 		return {};
 	}
@@ -170,35 +182,21 @@ const cleanWikiValue = (value: string | undefined) => {
 		.trim();
 };
 
-const readField = (fields: Record<string, string>, key: string) => cleanWikiValue(fields[key.toLocaleLowerCase()]);
+const readField = (fields: Record<string, string>, key: string) => {
+	return cleanWikiValue(fields[key.toLocaleLowerCase()]);
+};
 
-const tibiaWikiFileUrl = (fileName: string) => `${TIBIA_WIKI_ORIGIN}/wiki/Special:FilePath/${encodeURIComponent(fileName)}`;
+const tibiaWikiFileUrl = (fileName: string) => {
+	return `${TIBIA_WIKI_ORIGIN}/wiki/Special:FilePath/${encodeURIComponent(fileName)}`;
+};
 
-const creatureElementMetadata = [
-	{ label: "Físico", aliases: ["physical", "físico"], iconUrl: tibiaWikiFileUrl("Físico.png") },
-	{ label: "Terra", aliases: ["earth", "terra"], iconUrl: tibiaWikiFileUrl("Poisoned Icon.gif") },
-	{ label: "Fogo", aliases: ["fire", "fogo"], iconUrl: tibiaWikiFileUrl("Burning Icon.gif") },
-	{ label: "Energia", aliases: ["energy", "energia"], iconUrl: tibiaWikiFileUrl("Electrified Icon.gif") },
-	{ label: "Gelo", aliases: ["ice", "gelo"], iconUrl: tibiaWikiFileUrl("Freezing Icon.gif") },
-	{ label: "Morte", aliases: ["death", "morte"], iconUrl: tibiaWikiFileUrl("Cursed Icon.gif") },
-	{ label: "Sagrado", aliases: ["holy", "sagrado"], iconUrl: tibiaWikiFileUrl("Dazzled Icon.gif") },
-	{ label: "Água", aliases: ["drown", "drowning", "water", "água"], iconUrl: tibiaWikiFileUrl("Drowning Icon.gif") },
-	{ label: "Dreno de vida", aliases: ["life drain", "hp drain", "dreno de vida"], iconUrl: tibiaWikiFileUrl("Life Drain Icone.gif") },
-	{ label: "Cura", aliases: ["heal", "healing", "cura"], iconUrl: tibiaWikiFileUrl("Heal Icon.png") },
-] as const;
-
-const normalizeCreatureElement = (value: string) =>
-	value
+const normalizeCreatureElement = (value: string) => {
+	return value
 		.normalize("NFD")
 		.replace(/[\u0300-\u036f]/g, "")
 		.toLocaleLowerCase()
 		.trim();
-
-const findCreatureElement = (value: string) => {
-	const normalizedValue = normalizeCreatureElement(value);
-	return creatureElementMetadata.find((element) => element.aliases.some((alias) => normalizeCreatureElement(alias) === normalizedValue));
 };
-
 const resistanceKind = (value: string): CreatureSummary["resistances"][number]["kind"] => {
 	const numericValue = Number.parseFloat(value.replace(",", ".").replace("%", ""));
 	if (!Number.isFinite(numericValue)) {
@@ -250,13 +248,17 @@ export const extractCreatureSummary = (wikitext?: string): CreatureSummary => {
 					}
 				: undefined;
 		})
-		.filter((resistance): resistance is NonNullable<typeof resistance> => Boolean(resistance));
+		.filter((resistance): resistance is NonNullable<typeof resistance> => {
+			return Boolean(resistance);
+		});
 
 	const loot = ["lootcomum", "lootincomum", "lootsemiraro", "lootraro", "lootmuitoraro", "lootevent", "lootraid"].flatMap((key) => {
 		const value = readField(fields, key);
 		return value
 			? splitTopLevel(value, ",")
-					.map((item) => item.trim())
+					.map((item) => {
+						return item.trim();
+					})
 					.filter(Boolean)
 			: [];
 	});
@@ -282,7 +284,11 @@ const readItemList = (fields: Record<string, string>, key: string) => {
 	}
 
 	return splitTopLevel(value, ",")
-		.map((item) => cleanWikiValue(item).replace(/[.;]+$/, "").trim())
+		.map((item) => {
+			return cleanWikiValue(item)
+				.replace(/[.;]+$/, "")
+				.trim();
+		})
 		.filter(Boolean);
 };
 
@@ -294,7 +300,9 @@ const compactItemList = (items: string[], limit: number) => {
 	return `${items.slice(0, limit).join(", ")} + ${items.length - limit} outros`;
 };
 
-const shortenItemText = (value: string, limit = 240) => (value.length > limit ? `${value.slice(0, limit).trimEnd()}…` : value);
+const shortenItemText = (value: string, limit = 240) => {
+	return value.length > limit ? `${value.slice(0, limit).trimEnd()}…` : value;
+};
 
 export const extractItemSummary = (wikitext?: string): ItemSummary | undefined => {
 	if (!wikitext) {
@@ -331,7 +339,9 @@ export const extractItemSummary = (wikitext?: string): ItemSummary | undefined =
 				value: label === "Stackável" ? (normalizeCreatureElement(value) === "sim" ? "Sim" : "Não") : value,
 			};
 		})
-		.filter((attribute): attribute is ItemSummary["attributes"][number] => Boolean(attribute));
+		.filter((attribute): attribute is ItemSummary["attributes"][number] => {
+			return Boolean(attribute);
+		});
 
 	const description = shortenItemText(firstItemField(fields, ["attrib", "notes"]));
 	const sourceDefinitions: ReadonlyArray<readonly [string, string, number]> = [
@@ -345,7 +355,9 @@ export const extractItemSummary = (wikitext?: string): ItemSummary | undefined =
 			const value = compactItemList(readItemList(fields, key), limit);
 			return value ? { label, value } : undefined;
 		})
-		.filter((source): source is ItemSummary["sources"][number] => Boolean(source));
+		.filter((source): source is ItemSummary["sources"][number] => {
+			return Boolean(source);
+		});
 
 	if (attributes.length === 0 && !description && sources.length === 0) {
 		return undefined;
@@ -358,49 +370,68 @@ export const extractItemSummary = (wikitext?: string): ItemSummary | undefined =
 	};
 };
 
-const readCreatureList = (creature: Record<string, unknown>, key: string) => {
-	const value = creature[key];
-	return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
-};
-
-const createCreatureFallbackSummary = (creature: Record<string, unknown>): CreatureSummary => {
-	const resistances = [
-		["immune", "immune"],
-		["strong", "strong"],
-		["weakness", "weak"],
-		["healed", "healed"],
-	].flatMap(([key, kind]) =>
-		readCreatureList(creature, key).map((value) => {
-			const element = findCreatureElement(value);
-			return {
-				label: element?.label ?? value,
-				value: "—",
-				kind: kind as CreatureSummary["resistances"][number]["kind"],
-				iconUrl: element?.iconUrl,
-			};
-		}),
-	);
-
-	return { resistances, loot: readCreatureList(creature, "loot_list") };
-};
-
-export const fetchCreatureFallback = async (race: string, signal?: AbortSignal): Promise<CreatureFallbackDetails> => {
-	const response = await fetch(`${TIBIA_DATA_API}/creature/${encodeURIComponent(race)}`, { signal });
-	if (!response.ok) {
-		throw new Error(`TibiaData respondeu HTTP ${response.status}.`);
+export const extractImbuementSummary = (wikitext?: string): ImbuementSummary | undefined => {
+	if (!wikitext) {
+		return undefined;
 	}
 
-	const payload: unknown = await response.json();
-	const creature = isRecord(payload) && isRecord(payload.creature) ? payload.creature : undefined;
-	if (!creature || typeof creature.name !== "string") {
-		throw new Error("A TibiaData não retornou uma criatura válida.");
+	const fields = readInfobox(wikitext);
+	const attributeDefinitions: ReadonlyArray<readonly [string, string[]]> = [
+		["Categoria", ["modificador"]],
+		["Classe", ["imbuementclass"]],
+		["Aplicável em", ["aplicavel"]],
+		["Duração", ["duração", "duracao"]],
+	];
+	const attributes = attributeDefinitions
+		.map(([label, keys]) => {
+			const value = firstItemField(fields, keys);
+			return value ? { label, value: shortenItemText(value) } : undefined;
+		})
+		.filter((attribute): attribute is ImbuementSummary["attributes"][number] => {
+			return Boolean(attribute);
+		});
+
+	const effectDefinitions: ReadonlyArray<readonly [string, string]> = [
+		["Basic", "efeitoBasic"],
+		["Intricate", "efeitoIntricate"],
+		["Powerful", "efeitoPowerful"],
+	];
+	const effects = effectDefinitions
+		.map(([label, key]) => {
+			const value = firstItemField(fields, [key]);
+			return value ? { label, value: shortenItemText(value) } : undefined;
+		})
+		.filter((effect): effect is ImbuementSummary["effects"][number] => {
+			return Boolean(effect);
+		});
+
+	const materialDefinitions: ReadonlyArray<readonly [string, string, string]> = [
+		["Basic", "qtdItemBasic", "itemBasic"],
+		["Intricate", "qtdItemIntricate", "itemIntricate"],
+		["Powerful", "qtdItemPowerful", "itemPowerful"],
+	];
+	const materials = materialDefinitions
+		.map(([label, quantityKey, itemKey]) => {
+			const quantity = firstItemField(fields, [quantityKey]);
+			const item = firstItemField(fields, [itemKey]);
+			const value = [quantity, item].filter(Boolean).join(" × ");
+			return value
+				? {
+						label,
+						value: shortenItemText(value),
+						imageUrl: item ? tibiaWikiFileUrl(`${item}.gif`) : undefined,
+					}
+				: undefined;
+		})
+		.filter((material): material is ImbuementSummary["materials"][number] => {
+			return Boolean(material);
+		});
+
+	if (attributes.length === 0 && effects.length === 0 && materials.length === 0) {
+		return undefined;
 	}
 
-	return {
-		title: creature.name,
-		sourceUrl: `${TIBIA_DATA_API}/creature/${encodeURIComponent(race)}`,
-		summary: createCreatureFallbackSummary(creature),
-	};
+	return { attributes, effects, materials };
 };
 
 const readApiError = (payload: unknown) => {
@@ -424,7 +455,9 @@ const requestWikiJson = async (params: URLSearchParams, signal?: AbortSignal) =>
 	return payload;
 };
 
-const normalizeWikiTitle = (title: string) => title.trim().replace(/\s+/g, " ");
+const normalizeWikiTitle = (title: string) => {
+	return title.trim().replace(/\s+/g, " ");
+};
 
 const readQueryPages = (payload: unknown) => {
 	if (!isRecord(payload) || !isRecord(payload.query)) {
@@ -443,7 +476,9 @@ const readQueryPages = (payload: unknown) => {
 	return [];
 };
 
-const isCreatureTitle = (title: string) => normalizeWikiTitle(title).toLocaleLowerCase().endsWith(" (criatura)");
+const isCreatureTitle = (title: string) => {
+	return normalizeWikiTitle(title).toLocaleLowerCase().endsWith(" (criatura)");
+};
 
 const singularizeMonsterWord = (word: string) => {
 	const normalizedWord = word.toLocaleLowerCase();
@@ -465,30 +500,45 @@ const singularizeMonsterWord = (word: string) => {
 	return word;
 };
 
-const singularizeMonsterTitle = (title: string) => normalizeWikiTitle(title).split(" ").map(singularizeMonsterWord).join(" ");
+const singularizeMonsterTitle = (title: string) => {
+	return normalizeWikiTitle(title).split(" ").map(singularizeMonsterWord).join(" ");
+};
 
-const uniqueTitles = (titles: string[]) => [...new Set(titles.map(normalizeWikiTitle).filter(Boolean))];
+const uniqueTitles = (titles: string[]) => {
+	return [...new Set(titles.map(normalizeWikiTitle).filter(Boolean))];
+};
 
-const monsterTitleCandidates = (title: string, lookupId?: string) => uniqueTitles([title, singularizeMonsterTitle(title), lookupId ?? ""]);
+const monsterTitleCandidates = (title: string, lookupId?: string) => {
+	return uniqueTitles([title, singularizeMonsterTitle(title), lookupId ?? ""]);
+};
 
 const directPageCandidates = (title: string, kind: WikiEntityKind, lookupId?: string) => {
 	const titles = kind === "monster" ? monsterTitleCandidates(title, lookupId) : [normalizeWikiTitle(title)];
-	return uniqueTitles(titles.flatMap((candidate) => [candidate, `${candidate} (Criatura)`]));
+	return uniqueTitles(
+		kind === "monster"
+			? titles.flatMap((candidate) => {
+					return [candidate, `${candidate} (Criatura)`];
+				})
+			: titles,
+	);
 };
 
 const findSearchPage = (pages: Record<string, unknown>[], query: string, kind: WikiEntityKind) => {
 	const normalizedQuery = normalizeWikiTitle(query).toLocaleLowerCase();
-	const exactPage = pages.find(
-		(page) =>
+	const exactPage = pages.find((page) => {
+		return (
 			typeof page.title === "string" &&
-			(normalizeWikiTitle(page.title).toLocaleLowerCase() === normalizedQuery || isCreatureTitle(page.title)),
-	);
+			(normalizeWikiTitle(page.title).toLocaleLowerCase() === normalizedQuery || isCreatureTitle(page.title))
+		);
+	});
 	if (exactPage && typeof exactPage.pageid === "number" && typeof exactPage.title === "string") {
 		return { pageId: exactPage.pageid, title: exactPage.title };
 	}
 
 	if (kind !== "monster") {
-		const firstPage = pages.find((page) => typeof page.pageid === "number" && typeof page.title === "string");
+		const firstPage = pages.find((page) => {
+			return typeof page.pageid === "number" && typeof page.title === "string";
+		});
 		if (firstPage) {
 			return { pageId: firstPage.pageid as number, title: firstPage.title as string };
 		}
@@ -510,17 +560,23 @@ const resolveWikiPage = async (title: string, kind: WikiEntityKind, signal?: Abo
 		origin: "*",
 	});
 	const queryPayload = await requestWikiJson(queryParams, signal);
-	const availablePages = readQueryPages(queryPayload).filter(
-		(page) => page.missing !== true && typeof page.pageid === "number" && typeof page.title === "string",
-	);
+	const availablePages = readQueryPages(queryPayload).filter((page) => {
+		return page.missing !== true && typeof page.pageid === "number" && typeof page.title === "string";
+	});
 
 	const resolvedPage =
-		(kind === "monster" ? availablePages.find((page) => isCreatureTitle(page.title as string)) : undefined) ??
-		availablePages.find((page) =>
-			directPageCandidates(normalizedTitle, kind, lookupId)
-				.map((candidate) => candidate.toLocaleLowerCase())
-				.includes(normalizeWikiTitle(page.title as string).toLocaleLowerCase()),
-		) ??
+		(kind === "monster"
+			? availablePages.find((page) => {
+					return isCreatureTitle(page.title as string);
+				})
+			: undefined) ??
+		availablePages.find((page) => {
+			return directPageCandidates(normalizedTitle, kind, lookupId)
+				.map((candidate) => {
+					return candidate.toLocaleLowerCase();
+				})
+				.includes(normalizeWikiTitle(page.title as string).toLocaleLowerCase());
+		}) ??
 		availablePages[0];
 
 	if (resolvedPage) {
@@ -601,7 +657,8 @@ export const fetchWikiDetails = async (
 		html,
 		wikitext,
 		sourceUrl: getWikiUrl(resolvedTitle),
-		imageUrl: kind === "monster" || kind === "rune" || kind === "item" ? extractInfoboxImageUrl(html) : undefined,
+		imageUrl:
+			kind === "monster" || kind === "rune" || kind === "item" || kind === "imbuement" ? extractInfoboxImageUrl(html) : undefined,
 	};
 };
 
@@ -616,11 +673,15 @@ const flattenWikiLayout = (document: Document) => {
 		return;
 	}
 
-	const layoutTable = Array.from(parserOutput.querySelectorAll("table")).find(
-		(table) => table !== infobox && table.querySelector("table.infobox") === infobox,
-	);
+	const layoutTable = Array.from(parserOutput.querySelectorAll("table")).find((table) => {
+		return table !== infobox && table.querySelector("table.infobox") === infobox;
+	});
 	const layoutRow = layoutTable?.querySelector("tbody > tr");
-	const mainCell = layoutRow ? Array.from(layoutRow.children).find((cell) => cell.querySelector("table.infobox") === infobox) : undefined;
+	const mainCell = layoutRow
+		? Array.from(layoutRow.children).find((cell) => {
+				return cell.querySelector("table.infobox") === infobox;
+			})
+		: undefined;
 
 	if (layoutTable && mainCell) {
 		const content = document.createDocumentFragment();
@@ -637,12 +698,13 @@ const simplifyRuneWikiLayout = (document: Document) => {
 		return;
 	}
 
-	const disambiguationTable = Array.from(parserOutput.children).find(
-		(element) =>
+	const disambiguationTable = Array.from(parserOutput.children).find((element) => {
+		return (
 			element.tagName === "TABLE" &&
 			/este artigo é sobre/i.test(element.textContent ?? "") &&
-			/para a criatura/i.test(element.textContent ?? ""),
-	);
+			/para a criatura/i.test(element.textContent ?? "")
+		);
+	});
 	disambiguationTable?.remove();
 
 	flattenWikiLayout(document);
@@ -662,14 +724,18 @@ const removeSpellNavigationList = (document: Document) => {
 	}
 
 	Array.from(parserOutput.children)
-		.filter((element) => element.tagName === "CENTER" && /magias no tibia/i.test(element.textContent ?? ""))
+		.filter((element) => {
+			return element.tagName === "CENTER" && /magias no tibia/i.test(element.textContent ?? "");
+		})
 		.forEach((element) => {
 			element.remove();
 		});
 };
 
 const removeRunePurchaseSection = (document: Document) => {
-	const normalizeLabel = (value: string) => value.replace(/\s+/g, " ").replace(/:\s*$/, "").trim().toLocaleLowerCase();
+	const normalizeLabel = (value: string) => {
+		return value.replace(/\s+/g, " ").replace(/:\s*$/, "").trim().toLocaleLowerCase();
+	};
 
 	const purchaseRow = Array.from(document.querySelectorAll("tr")).find((row) => {
 		const firstCell = row.cells[0];
@@ -689,13 +755,14 @@ const removeRunePurchaseSection = (document: Document) => {
 
 const removeUnneededWikiRows = (document: Document) => {
 	const removableLabels = new Set(["notas", "historia", "premium", "adicionado", "valor", "atualizada"]);
-	const normalizeLabel = (value: string) =>
-		value
+	const normalizeLabel = (value: string) => {
+		return value
 			.normalize("NFD")
 			.replace(/[\u0300-\u036f]/g, "")
 			.replace(/:\s*$/, "")
 			.trim()
 			.toLocaleLowerCase();
+	};
 
 	for (const infobox of Array.from(document.querySelectorAll<HTMLTableElement>("table.infobox"))) {
 		const body = infobox.tBodies[0];

@@ -1,7 +1,8 @@
 import { createSignal, lazy, onCleanup, onMount } from "solid-js";
 import { Toaster, toast } from "solid-toast";
 
-import APIKeyModal from "@/components/api-key-modal";
+import APIKeyModal from "@/component/api-key-modal";
+import { LAST_VIEW_STORAGE_KEY } from "@/const/storage";
 import { database } from "@/lib/database";
 import { hasDuplicateHunt } from "@/lib/hunt-dedup";
 import { detectHuntReportType } from "@/lib/hunt-detector";
@@ -15,16 +16,25 @@ import {
 	startPartyHuntSync,
 	synchronizePartyHunts,
 } from "@/lib/hunt-sync";
-import * as toastStyles from "@/styles/toast.css";
-import type { HuntRecord, View } from "@/types/hunt-common";
-import type { ParsedHuntParty } from "@/types/hunt-party";
+import * as toastStyles from "@/style/toast.css";
+import type { HuntRecord, View } from "@/type/hunt-common";
+import type { ParsedHuntParty } from "@/type/hunt-party";
 
-const AppShell = lazy(() => import("@/components/app-shell"));
-const HuntImporter = lazy(() => import("@/components/hunt-importer"));
-const HuntDashboard = lazy(() => import("@/components/hunt-dashboard"));
-const HuntViewer = lazy(() => import("@/components/hunt-viewer"));
-const StorageErrorModal = lazy(() => import("@/components/error-modal"));
-const lastViewStorageKey = "hunt-vault:last-view";
+const AppShell = lazy(() => {
+	return import("@/component/app-shell");
+});
+const HuntImporter = lazy(() => {
+	return import("@/component/hunt-importer");
+});
+const HuntDashboard = lazy(() => {
+	return import("@/component/hunt-dashboard");
+});
+const HuntViewer = lazy(() => {
+	return import("@/component/hunt-viewer");
+});
+const StorageErrorModal = lazy(() => {
+	return import("@/component/error-modal");
+});
 
 const ensurePartyHuntFingerprints = async (records: HuntRecord[]) => {
 	return Promise.all(
@@ -45,12 +55,16 @@ const ensurePartyHuntFingerprints = async (records: HuntRecord[]) => {
 			await database.hunts.update(record.id, { fingerprint });
 			return { ...record, fingerprint };
 		}),
-	).then((partyRecords) => partyRecords.filter((record): record is HuntRecord => record !== null));
+	).then((partyRecords) => {
+		return partyRecords.filter((record) => {
+			return record !== null;
+		});
+	});
 };
 
 const getStoredView = (): View => {
 	try {
-		const storedView = localStorage.getItem(lastViewStorageKey);
+		const storedView = localStorage.getItem(LAST_VIEW_STORAGE_KEY);
 		return storedView === "party" || storedView === "import" ? storedView : "party";
 	} catch {
 		return "party";
@@ -87,7 +101,9 @@ export default () => {
 
 	onMount(() => {
 		let disposed = false;
-		let stopSync: () => void = () => undefined;
+		let stopSync: () => void = () => {
+			return undefined;
+		};
 		void checkDatabaseAccess().then((available) => {
 			if (available && !disposed) {
 				stopSync = startPartyHuntSync(() => {
@@ -106,7 +122,9 @@ export default () => {
 
 			clickSound.currentTime = 0;
 			clickSound.volume = 0.1;
-			void clickSound.play().catch(() => undefined);
+			void clickSound.play().catch(() => {
+				return undefined;
+			});
 		};
 
 		document.addEventListener("click", handleButtonClick);
@@ -137,7 +155,7 @@ export default () => {
 	const handleViewChange = (nextView: View) => {
 		setView(nextView);
 
-		localStorage.setItem(lastViewStorageKey, nextView);
+		localStorage.setItem(LAST_VIEW_STORAGE_KEY, nextView);
 
 		if (nextView === "party") {
 			void loadHistory();
@@ -244,10 +262,14 @@ export default () => {
 				await database.hunts.add(record);
 				await database.syncOutbox.put(createPartyHuntUpsertMutation(record, parsedParty));
 			});
-			setHistory((records) => [record, ...records]);
+			setHistory((records) => {
+				return [record, ...records];
+			});
 			setClipboardText("");
 			toast.success("Resultado salvo no IndexedDB!");
-			void synchronizePartyHunts().catch(() => undefined);
+			void synchronizePartyHunts().catch(() => {
+				return undefined;
+			});
 		} catch {
 			toast.error("Não foi possível salvar o resultado da caçada.");
 		} finally {
@@ -257,7 +279,9 @@ export default () => {
 
 	const deleteHunt = async (id: string) => {
 		const records = history();
-		const deletedIndex = records.findIndex((record) => record.id === id);
+		const deletedIndex = records.findIndex((record) => {
+			return record.id === id;
+		});
 
 		if (deletedIndex === -1) {
 			return;
@@ -287,10 +311,14 @@ export default () => {
 				throw new Error("O registro ainda existe no IndexedDB.");
 			}
 
-			const remainingRecords = records.filter((record) => record.id !== id);
+			const remainingRecords = records.filter((record) => {
+				return record.id !== id;
+			});
 			setHistory(remainingRecords);
 			toast.success("Caçada excluída do histórico.");
-			void synchronizePartyHunts().catch(() => undefined);
+			void synchronizePartyHunts().catch(() => {
+				return undefined;
+			});
 		} catch {
 			toast.error("Não foi possível excluir a caçada.");
 		} finally {
@@ -325,7 +353,9 @@ export default () => {
 							history={history()}
 							loading={loadingHistory()}
 							deleting={deleting()}
-							onImport={() => setView("import")}
+							onImport={() => {
+								return setView("import");
+							}}
 							onDelete={(id) => {
 								void deleteHunt(id);
 							}}
@@ -333,7 +363,12 @@ export default () => {
 					</>
 				)}
 			</AppShell>
-			<StorageErrorModal open={storageError()} onClose={() => setStorageError(false)} />
+			<StorageErrorModal
+				open={storageError()}
+				onClose={() => {
+					return setStorageError(false);
+				}}
+			/>
 			<APIKeyModal open={apiKeyModalOpen()} onSubmit={submitAPIKey} onCancel={dismissAPIKeyPrompt} />
 		</>
 	);

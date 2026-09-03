@@ -1,5 +1,5 @@
 import { createSignal, type JSX, onCleanup, onMount } from "solid-js";
-import * as styles from "@/styles/custom-scrollbar.css";
+import * as styles from "@/style/custom-scrollbar.css";
 
 type CustomScrollbarProps = {
 	children: JSX.Element;
@@ -26,11 +26,19 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 	let scrollbarElement!: HTMLDivElement;
 	let dragStartY = 0;
 	let dragStartScrollTop = 0;
-	const isNested = () => props.variant === "nested";
-	const isHorizontal = () => props.orientation === "horizontal";
-	const scrollId = () => props.id ?? "main-scroll";
+	const isNested = () => {
+		return props.variant === "nested";
+	};
+	const isHorizontal = () => {
+		return props.orientation === "horizontal";
+	};
+	const scrollId = () => {
+		return props.id ?? "main-scroll";
+	};
 
-	const getScrollPosition = () => (isHorizontal() ? mainElement.scrollLeft : mainElement.scrollTop);
+	const getScrollPosition = () => {
+		return isHorizontal() ? mainElement.scrollLeft : mainElement.scrollTop;
+	};
 	const setElementScrollPosition = (value: number) => {
 		if (isHorizontal()) {
 			mainElement.scrollLeft = value;
@@ -40,7 +48,9 @@ const CustomScrollbar = (props: CustomScrollbarProps) => {
 		mainElement.scrollTop = value;
 	};
 
-	const clamp = (value: number, minimum: number, maximum: number) => Math.min(Math.max(value, minimum), maximum);
+	const clamp = (value: number, minimum: number, maximum: number) => {
+		return Math.min(Math.max(value, minimum), maximum);
+	};
 
 	const updateScrollbar = () => {
 		if (!mainElement || !scrollbarElement) {

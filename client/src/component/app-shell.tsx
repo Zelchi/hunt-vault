@@ -1,13 +1,15 @@
 import { createEffect, createSignal, lazy, onCleanup, Show } from "solid-js";
-import EntityDetailPanel from "@/components/entity-detail-panel";
-import EntitySearch from "@/components/entity-search";
-import { SwordIcon } from "@/components/icons";
-import Navbar from "@/components/navbar";
+import EntityDetailPanel from "@/component/entity-detail-panel";
+import EntitySearch from "@/component/entity-search";
+import { SwordIcon } from "@/component/icons";
+import Navbar from "@/component/navbar";
 import type { EntitySearchResult } from "@/lib/entity-search";
-import * as styles from "@/styles/app-shell.css";
-import type { AppShellProps } from "@/types/components";
+import * as styles from "@/style/app-shell.css";
+import type { AppShellProps } from "@/type/components";
 
-const CustomScrollbar = lazy(() => import("@/components/custom-scrollbar"));
+const CustomScrollbar = lazy(() => {
+	return import("@/component/custom-scrollbar");
+});
 
 export default (props: AppShellProps) => {
 	const [headerVisible, setHeaderVisible] = createSignal(true);
@@ -86,7 +88,16 @@ export default (props: AppShellProps) => {
 				<Navbar view={props.view} onViewChange={props.onViewChange} />
 			</header>
 			<Show when={selectedEntity()}>
-				{(entity) => <EntityDetailPanel entity={entity()} onClose={() => setSelectedEntity(undefined)} />}
+				{(entity) => {
+					return (
+						<EntityDetailPanel
+							entity={entity()}
+							onClose={() => {
+								return setSelectedEntity(undefined);
+							}}
+						/>
+					);
+				}}
 			</Show>
 			<CustomScrollbar onScroll={handleMainScroll}>{props.children}</CustomScrollbar>
 		</div>

@@ -1,11 +1,19 @@
 export type HuntReportType = "party" | "unknown";
 
-const normalizeLabel = (label: string) => label.trim().toLowerCase();
+const normalizeLabel = (label: string) => {
+	return label.trim().toLowerCase();
+};
 
 const detectHuntReportType = (rawText: string): HuntReportType => {
-	const lines = rawText.split(/\r?\n/).map((line) => line.trim());
-	const hasLootType = lines.some((line) => /^Loot Type:\s*\S/i.test(line));
-	const hasLeader = lines.some((line) => /\s+\(Leader\)$/i.test(line));
+	const lines = rawText.split(/\r?\n/).map((line) => {
+		return line.trim();
+	});
+	const hasLootType = lines.some((line) => {
+		return /^Loot Type:\s*\S/i.test(line);
+	});
+	const hasLeader = lines.some((line) => {
+		return /\s+\(Leader\)$/i.test(line);
+	});
 	if (hasLootType || hasLeader) {
 		return "party";
 	}
