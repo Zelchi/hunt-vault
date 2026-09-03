@@ -1,25 +1,10 @@
-import type { Accessor } from "solid-js";
 import { createEffect, createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import CustomScrollbar from "@/component/custom-scrollbar";
 import * as dashboard from "@/lib/hunt-dashboard";
 import * as styles from "@/style/hunt-dashboard.css";
-import type { DashboardProps } from "@/type/components";
-
-type MetricChartProps = {
-	config: dashboard.MetricConfig;
-	values: Accessor<number[]>;
-};
-
-type KpiColor = "green" | "orange" | "red" | "lightGreen";
-
-type KpiCardProps = {
-	label: string;
-	value: string;
-	detail?: string;
-	color?: KpiColor;
-};
+import type { DashboardProps, KpiCardProps, MetricChartProps } from "@/type/components";
 
 const MetricChart = (props: MetricChartProps) => {
 	let chartElement!: HTMLDivElement;

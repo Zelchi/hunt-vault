@@ -1,0 +1,24 @@
+export type TibiaWatchRespawnDetails = {
+	id: string;
+	name: string;
+	description?: string;
+	premium?: boolean;
+	alias?: string;
+	status?: string;
+	minLevel?: number;
+	maxLevel?: number;
+	difficulty?: string;
+	vocations?: string;
+	avgExpPerHour?: string;
+	avgLootPerHour?: string;
+	city?: string;
+	tags?: string;
+	imageUrl?: string;
+	videoUrl?: string;
+	expPerHour?: number;
+	profitPerHour?: number;
+	imbuements?: string;
+	supplies?: string;
+	trinket?: string;
+	questRequirements?: string;
+};

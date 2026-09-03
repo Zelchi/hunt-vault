@@ -2,15 +2,12 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 
 import CustomScrollbar from "@/component/custom-scrollbar";
 import { SearchIcon } from "@/component/icons";
-import { ENTITY_KIND_LABEL, ENTITY_SEARCH_FILTERS, type EntitySearchFilter } from "@/const/entity";
+import { ENTITY_KIND_LABEL, ENTITY_SEARCH_FILTERS } from "@/const/entity";
 import {
 	cacheSearchResults,
 	cacheTibiaWatchHunts,
-	type EntityCatalog,
-	type EntitySearchResult,
 	getCachedSearchResults,
 	getCachedTibiaWatchHunts,
-	type HuntSearchResult,
 	loadEntityCatalog,
 	mergeSearchResults,
 	normalizeSearchText,
@@ -23,10 +20,8 @@ import {
 	searchWikiSpells,
 } from "@/lib/entity-search";
 import * as styles from "@/style/entity-search.css";
-
-type EntitySearchProps = {
-	onSelect: (result: EntitySearchResult) => void;
-};
+import type { EntitySearchProps, SearchResultButtonProps } from "@/type/components";
+import type { EntityCatalog, EntitySearchFilter, EntitySearchResult, HuntSearchResult } from "@/type/entity";
 
 const hideBrokenImage = (event: Event) => {
 	(event.currentTarget as HTMLImageElement).hidden = true;
@@ -36,12 +31,7 @@ const showLoadedImage = (event: Event) => {
 	(event.currentTarget as HTMLImageElement).hidden = false;
 };
 
-const SearchResultButton = (props: {
-	result: EntitySearchResult;
-	isActive: () => boolean;
-	onHover: () => void;
-	onSelect: (result: EntitySearchResult) => void;
-}) => {
+const SearchResultButton = (props: SearchResultButtonProps) => {
 	return (
 		<button
 			class={styles.result}

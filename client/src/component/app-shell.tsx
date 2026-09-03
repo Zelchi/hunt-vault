@@ -3,9 +3,9 @@ import EntityDetailPanel from "@/component/entity-detail-panel";
 import EntitySearch from "@/component/entity-search";
 import { SwordIcon } from "@/component/icons";
 import Navbar from "@/component/navbar";
-import type { EntitySearchResult } from "@/lib/entity-search";
 import * as styles from "@/style/app-shell.css";
 import type { AppShellProps } from "@/type/components";
+import type { EntitySearchResult } from "@/type/entity";
 
 const CustomScrollbar = lazy(() => {
 	return import("@/component/custom-scrollbar");

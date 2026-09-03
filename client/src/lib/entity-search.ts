@@ -22,84 +22,22 @@ import {
 	WIKI_SEARCH_CACHE_KEY,
 	WIKI_SEARCH_CACHE_MAX_AGE,
 } from "@/const/wiki";
-
-export type WikiEntityKind = "monster" | "spell" | "rune" | "item" | "imbuement";
-export type EntityKind = WikiEntityKind | "hunt";
-
-type EntitySearchResultBase = {
-	id: string;
-	title: string;
-	isBoss?: boolean;
-	lookupId?: string;
-	imageUrl?: string;
-	snippet?: string;
-};
-
-export type WikiEntitySearchResult = EntitySearchResultBase & {
-	kind: WikiEntityKind;
-	source: "tibiawiki";
-	externalUrl?: never;
-};
-
-export type HuntSearchResult = EntitySearchResultBase & {
-	kind: "hunt";
-	source: "tibiawatch";
-	externalUrl: string;
-	huntCode?: string;
-};
-
-export type EntitySearchResult = WikiEntitySearchResult | HuntSearchResult;
-
-export type TibiaWatchRespawnDetails = {
-	id: string;
-	name: string;
-	description?: string;
-	premium?: boolean;
-	alias?: string;
-	status?: string;
-	minLevel?: number;
-	maxLevel?: number;
-	difficulty?: string;
-	vocations?: string;
-	avgExpPerHour?: string;
-	avgLootPerHour?: string;
-	city?: string;
-	tags?: string;
-	imageUrl?: string;
-	videoUrl?: string;
-	expPerHour?: number;
-	profitPerHour?: number;
-	imbuements?: string;
-	supplies?: string;
-	trinket?: string;
-	questRequirements?: string;
-};
-
-export type EntityCatalog = {
-	monsters: CatalogEntity[];
-	spells: CatalogEntity[];
-	runes: CatalogEntity[];
-	imbuements: CatalogEntity[];
-};
-
-type CatalogEntity = {
-	id: string;
-	name: string;
-	kind: WikiEntityKind;
-	lookupId?: string;
-	imageUrl?: string;
-};
-
-type CatalogSearchEntry = {
-	entity: CatalogEntity;
-	name: string;
-	id: string;
-};
+import type {
+	CatalogEntity,
+	CatalogSearchEntry,
+	EntityCatalog,
+	EntityKind,
+	EntitySearchResult,
+	HuntSearchResult,
+	SearchCacheEntry,
+	WikiCategoryCacheEntry,
+	WikiEntityKind,
+} from "@/type/entity";
+import type { TibiaWatchRespawnDetails } from "@/type/tibiawatch";
 
 const emptyCatalog: EntityCatalog = { monsters: [], spells: [], runes: [], imbuements: [] };
 let catalogSearchIndex: { catalog: EntityCatalog; fuse: Fuse<CatalogSearchEntry> } | undefined;
-const wikiCategoryCache = new Map<string, { fetchedAt: number; pages: Record<string, unknown>[] }>();
-type SearchCacheEntry = { savedAt: number; results: EntitySearchResult[] };
+const wikiCategoryCache = new Map<string, WikiCategoryCacheEntry>();
 let wikiSearchCache: Record<string, SearchCacheEntry> | undefined;
 let tibiaWatchSearchCache: Record<string, SearchCacheEntry> | undefined;
 
@@ -1041,26 +979,26 @@ export const searchWikiImbuements = async (query: string, signal?: AbortSignal):
 	const showAllImbuements = ["imbuement", "imbuements", "encantamento", "encantamentos"].includes(normalizedQuery);
 	const matchingPages = showAllImbuements
 		? [...pages].sort((left, right) => {
-			return (left.title as string).localeCompare(right.title as string);
-		})
+				return (left.title as string).localeCompare(right.title as string);
+			})
 		: new Fuse(
-			pages.map((page) => {
-				return {
-					page,
-					title: normalizeSearchText(page.title as string),
-				};
-			}),
-			{
-				keys: ["title"],
-				ignoreLocation: true,
-				minMatchCharLength: 2,
-				threshold: 0.42,
-			},
-		)
-			.search(normalizedQuery, { limit: 30 })
-			.map(({ item }) => {
-				return item.page;
-			});
+				pages.map((page) => {
+					return {
+						page,
+						title: normalizeSearchText(page.title as string),
+					};
+				}),
+				{
+					keys: ["title"],
+					ignoreLocation: true,
+					minMatchCharLength: 2,
+					threshold: 0.42,
+				},
+			)
+				.search(normalizedQuery, { limit: 30 })
+				.map(({ item }) => {
+					return item.page;
+				});
 
 	return matchingPages.map((page): EntitySearchResult => {
 		const title = page.title as string;

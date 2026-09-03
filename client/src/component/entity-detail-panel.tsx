@@ -3,23 +3,24 @@ import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
 import CustomScrollbar from "@/component/custom-scrollbar";
 import { ENTITY_KIND_LABEL } from "@/const/entity";
 import {
-	type CreatureSummary,
 	extractCreatureSummary,
 	extractImbuementSummary,
 	extractItemSummary,
 	fetchWikiDetails,
-	type ImbuementSummary,
-	type ItemSummary,
 	sanitizeWikiHtml,
-	type WikiPageDetails,
 } from "@/lib/entity-details";
-import { type EntitySearchResult, fetchTibiaWatchHuntDetails, type TibiaWatchRespawnDetails } from "@/lib/entity-search";
+import { fetchTibiaWatchHuntDetails } from "@/lib/entity-search";
 import * as styles from "@/style/entity-detail-panel.css";
-
-type EntityDetailPanelProps = {
-	entity: EntitySearchResult;
-	onClose: () => void;
-};
+import type {
+	CreatureSummaryViewProps,
+	EntityDetailPanelProps,
+	HuntDetailField,
+	HuntSummaryViewProps,
+	ImbuementSummaryViewProps,
+	ItemSummaryViewProps,
+} from "@/type/components";
+import type { CreatureResistance, CreatureSummary, ImbuementSummary, ItemSummary, WikiPageDetails } from "@/type/entity-details";
+import type { TibiaWatchRespawnDetails } from "@/type/tibiawatch";
 
 const hideBrokenImage = (event: Event) => {
 	(event.currentTarget as HTMLImageElement).hidden = true;
@@ -32,8 +33,6 @@ const resistanceKindLabel: Record<CreatureSummary["resistances"][number]["kind"]
 	weak: "Vulnerável",
 	healed: "Cura",
 };
-
-type CreatureResistance = CreatureSummary["resistances"][number];
 
 const resistanceGroups = (resistances: CreatureResistance[]) => {
 	return [
@@ -58,7 +57,7 @@ const resistanceGroups = (resistances: CreatureResistance[]) => {
 	];
 };
 
-const CreatureSummaryView = (props: { summary: CreatureSummary }) => {
+const CreatureSummaryView = (props: CreatureSummaryViewProps) => {
 	return (
 		<div class={styles.creatureSummary}>
 			<section class={styles.summarySection}>
@@ -120,7 +119,7 @@ const CreatureSummaryView = (props: { summary: CreatureSummary }) => {
 	);
 };
 
-const ItemSummaryView = (props: { summary?: ItemSummary; sourceUrl?: string }) => {
+const ItemSummaryView = (props: ItemSummaryViewProps) => {
 	return (
 		<div class={styles.itemSummary}>
 			<Show when={props.summary} fallback={<p class={styles.summaryEmpty}>Nenhum resumo do item foi informado.</p>}>
@@ -177,7 +176,7 @@ const ItemSummaryView = (props: { summary?: ItemSummary; sourceUrl?: string }) =
 	);
 };
 
-const ImbuementSummaryView = (props: { summary?: ImbuementSummary; sourceUrl?: string }) => {
+const ImbuementSummaryView = (props: ImbuementSummaryViewProps) => {
 	return (
 		<div class={styles.itemSummary}>
 			<Show when={props.summary} fallback={<p class={styles.summaryEmpty}>Nenhum resumo do imbuement foi informado.</p>}>
@@ -256,11 +255,6 @@ const ImbuementSummaryView = (props: { summary?: ImbuementSummary; sourceUrl?: s
 	);
 };
 
-type HuntDetailField = {
-	label: string;
-	value: string;
-};
-
 const HUNT_DIFFICULTY_LABEL: Record<string, string> = {
 	easy: "Fácil",
 	medium: "Média",
@@ -271,7 +265,7 @@ const formatHuntLevel = (minLevel?: number, maxLevel?: number) => {
 	const hasMinLevel = typeof minLevel === "number" && minLevel > 0;
 	const hasMaxLevel = typeof maxLevel === "number" && maxLevel > 0;
 	if (hasMinLevel && hasMaxLevel) {
-		return `${minLevel}–${maxLevel}`;
+		return `${minLevel}-${maxLevel}`;
 	}
 	if (hasMinLevel) {
 		return `${minLevel}+`;
@@ -380,7 +374,7 @@ const getYouTubeEmbedUrl = (videoUrl?: string) => {
 	}
 };
 
-const HuntSummaryView = (props: { details: TibiaWatchRespawnDetails }) => {
+const HuntSummaryView = (props: HuntSummaryViewProps) => {
 	const details = props.details;
 	const information = getHuntInformation(details);
 	const performance = getHuntPerformance(details);

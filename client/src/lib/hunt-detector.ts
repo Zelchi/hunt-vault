@@ -1,4 +1,4 @@
-export type HuntReportType = "party" | "unknown";
+import type { HuntReportType } from "@/type/hunt-detector";
 
 const normalizeLabel = (label: string) => {
 	return label.trim().toLowerCase();

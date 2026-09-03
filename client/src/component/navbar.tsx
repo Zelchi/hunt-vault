@@ -1,10 +1,5 @@
 import * as styles from "@/style/app-shell.css";
-import type { View } from "@/type/hunt-common";
-
-type NavbarProps = {
-	view: View;
-	onViewChange: (view: View) => void;
-};
+import type { NavbarProps } from "@/type/components";
 
 export default (props: NavbarProps) => {
 	return (

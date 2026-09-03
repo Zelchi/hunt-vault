@@ -1,6 +1,4 @@
-import type { EntitySearchResult } from "@/lib/entity-search";
-
-export type EntitySearchFilter = "boss" | EntitySearchResult["kind"];
+import type { EntitySearchFilter, EntitySearchResult } from "@/type/entity";
 
 export const ENTITY_KIND_LABEL: Record<EntitySearchResult["kind"], string> = {
 	monster: "Criatura",

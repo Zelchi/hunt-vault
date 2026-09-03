@@ -1,55 +1,9 @@
 import { TIBIA_WIKI_API, TIBIA_WIKI_ORIGIN } from "@/const/wiki";
+import type { WikiEntityKind } from "@/type/entity";
+import type { CreatureSummary, ImbuementSummary, ItemSummary, WikiPageDetails } from "@/type/entity-details";
 
 const getWikiUrl = (title: string) => {
 	return `${TIBIA_WIKI_ORIGIN}/wiki/${encodeURIComponent(title.trim().replace(/\s+/g, "_"))}`;
-};
-
-export type WikiPageDetails = {
-	title: string;
-	html: string;
-	wikitext?: string;
-	sourceUrl: string;
-	imageUrl?: string;
-};
-
-export type WikiEntityKind = "monster" | "spell" | "rune" | "item" | "imbuement";
-
-export type CreatureSummary = {
-	resistances: Array<{
-		label: string;
-		value: string;
-		kind: "immune" | "strong" | "neutral" | "weak" | "healed";
-		iconUrl?: string;
-	}>;
-	loot: string[];
-};
-
-export type ItemSummary = {
-	attributes: Array<{
-		label: string;
-		value: string;
-	}>;
-	description?: string;
-	sources: Array<{
-		label: string;
-		value: string;
-	}>;
-};
-
-export type ImbuementSummary = {
-	attributes: Array<{
-		label: string;
-		value: string;
-	}>;
-	effects: Array<{
-		label: string;
-		value: string;
-	}>;
-	materials: Array<{
-		label: string;
-		value: string;
-		imageUrl: string | undefined;
-	}>;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {

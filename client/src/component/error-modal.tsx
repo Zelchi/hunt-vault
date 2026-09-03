@@ -1,11 +1,7 @@
 import { Show } from "solid-js";
 import { WarningIcon } from "@/component/icons";
 import * as styles from "@/style/confirm-modal.css";
-
-type StorageErrorModalProps = {
-	open: boolean;
-	onClose: () => void;
-};
+import type { StorageErrorModalProps } from "@/type/components";
 
 export default (props: StorageErrorModalProps) => {
 	return (

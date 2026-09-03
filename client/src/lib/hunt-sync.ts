@@ -5,29 +5,11 @@ import { validateHuntPartyReport } from "@/lib/hunt-party";
 import { getPartyHuntFingerprint } from "@/lib/hunt-party-fingerprint";
 import type { HuntRecord, HuntSyncMutation } from "@/type/hunt-common";
 import type { ParsedHuntParty } from "@/type/hunt-party";
+import type { PulledHunt, PullResponse, PushResponse } from "@/type/hunt-sync";
 
 const listeners = new Set<() => void>();
 let activeSync: Promise<void> | undefined;
 let syncRequested = false;
-
-type PushResponse = {
-	accepted: string[];
-	server_time: number;
-};
-
-type PulledHunt = {
-	fingerprint: string;
-	payload: unknown;
-	version: number;
-	updated_at: number;
-	deleted: boolean;
-};
-
-type PullResponse = {
-	hunts: PulledHunt[];
-	cursor: number;
-	has_more: boolean;
-};
 
 const getStoredSyncAPIKey = () => {
 	try {

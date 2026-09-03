@@ -1,19 +1,6 @@
-import { createSignal, type JSX, onCleanup, onMount } from "solid-js";
+import { createSignal, onCleanup, onMount } from "solid-js";
 import * as styles from "@/style/custom-scrollbar.css";
-
-type CustomScrollbarProps = {
-	children: JSX.Element;
-	onScroll?: (event: Event) => void;
-	variant?: "main" | "nested";
-	scrollbarVariant?: "default" | "minimal";
-	orientation?: "vertical" | "horizontal";
-	class?: string;
-	viewportClass?: string;
-	viewportRole?: "listbox";
-	viewportAriaLabel?: string;
-	id?: string;
-	ariaLabel?: string;
-};
+import type { CustomScrollbarProps } from "@/type/components";
 
 const CustomScrollbar = (props: CustomScrollbarProps) => {
 	const [scrollable, setScrollable] = createSignal(false);
