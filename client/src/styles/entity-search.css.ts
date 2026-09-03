@@ -122,6 +122,16 @@ export const resultsViewport = style({
 	paddingRight: "1.1rem",
 });
 
+export const resultGroupTitle = style({
+	padding: "0.55rem 0.75rem 0.35rem",
+	borderBottom: "1px solid #1a2b22",
+	color: "#d9a441",
+	fontSize: "0.6rem",
+	fontWeight: 700,
+	letterSpacing: "0.08em",
+	textTransform: "uppercase",
+});
+
 export const result = style({
 	display: "flex",
 	alignItems: "center",

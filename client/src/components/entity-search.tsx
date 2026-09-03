@@ -8,6 +8,7 @@ import {
 	loadEntityCatalog,
 	normalizeSearchText,
 	searchCatalog,
+	searchWikiCreatures,
 	searchWikiItems,
 } from "@/lib/entity-search";
 import * as styles from "@/styles/entity-search.css";
@@ -31,13 +32,53 @@ const showLoadedImage = (event: Event) => {
 	(event.currentTarget as HTMLImageElement).hidden = false;
 };
 
-const mergeResults = (catalogResults: EntitySearchResult[], itemResults: EntitySearchResult[]) => {
+const mergeResults = (catalogResults: EntitySearchResult[], remoteResults: EntitySearchResult[]) => {
 	const uniqueResults = new Map<string, EntitySearchResult>();
-	for (const result of [...catalogResults, ...itemResults]) {
-		uniqueResults.set(result.id, result);
+	for (const result of [...catalogResults, ...remoteResults]) {
+		const key = `${result.kind}:${normalizeSearchText(result.title)}`;
+		const existingResult = uniqueResults.get(key);
+		if (!existingResult) {
+			uniqueResults.set(key, result);
+		} else if (result.isBoss && !existingResult.isBoss) {
+			uniqueResults.set(key, { ...existingResult, isBoss: true, snippet: "Boss da TibiaWiki" });
+		}
 	}
 	return [...uniqueResults.values()];
 };
+
+const SearchResultButton = (props: {
+	result: EntitySearchResult;
+	isActive: () => boolean;
+	onHover: () => void;
+	onSelect: (result: EntitySearchResult) => void;
+}) => (
+	<button
+		class={styles.result}
+		data-active={props.isActive()}
+		type="button"
+		onMouseEnter={props.onHover}
+		onClick={() => props.onSelect(props.result)}
+	>
+		<Show when={props.result.imageUrl}>
+			<img
+				class={styles.resultImage}
+				src={props.result.imageUrl}
+				alt=""
+				loading="lazy"
+				decoding="async"
+				onLoad={showLoadedImage}
+				onError={hideBrokenImage}
+			/>
+		</Show>
+		<span class={styles.resultBody}>
+			<span class={styles.resultTopline}>
+				<strong class={styles.resultTitle}>{props.result.title}</strong>
+				<span class={styles.resultKind}>{props.result.isBoss ? "Boss" : resultKindLabel[props.result.kind]}</span>
+			</span>
+			<span class={styles.resultSnippet}>{props.result.snippet}</span>
+		</span>
+	</button>
+);
 
 export default (props: EntitySearchProps) => {
 	const [query, setQuery] = createSignal("");
@@ -51,6 +92,11 @@ export default (props: EntitySearchProps) => {
 	let searchInput!: HTMLInputElement;
 	let itemSearchController: AbortController | undefined;
 	let itemSearchTimer: number | undefined;
+	const bossResults = () => results().filter((result) => result.kind === "monster" && result.isBoss === true);
+	const monsterResults = () => results().filter((result) => result.kind === "monster" && result.isBoss !== true);
+	const otherResults = () => results().filter((result) => result.kind !== "monster");
+	const visibleResults = () => [...bossResults(), ...monsterResults(), ...otherResults()];
+	const resultIndex = (result: EntitySearchResult) => visibleResults().findIndex((candidate) => candidate.id === result.id);
 
 	const cancelItemSearch = () => {
 		if (itemSearchTimer !== undefined) {
@@ -96,13 +142,13 @@ export default (props: EntitySearchProps) => {
 			itemSearchTimer = undefined;
 			const controller = new AbortController();
 			itemSearchController = controller;
-			void searchWikiItems(value, controller.signal)
-				.then((itemResults) => {
+			void Promise.allSettled([searchWikiItems(value, controller.signal), searchWikiCreatures(value, controller.signal)])
+				.then((searches) => {
 					if (!controller.signal.aborted) {
-						setResults(mergeResults(searchCatalog(catalog(), value), itemResults));
+						const remoteResults = searches.flatMap((search) => (search.status === "fulfilled" ? search.value : []));
+						setResults(mergeResults(searchCatalog(catalog(), value), remoteResults));
 					}
 				})
-				.catch(() => undefined)
 				.finally(() => {
 					if (itemSearchController === controller) {
 						setItemSearchLoading(false);
@@ -118,23 +164,24 @@ export default (props: EntitySearchProps) => {
 			return;
 		}
 
-		if (!open() || results().length === 0) {
+		const navigableResults = visibleResults();
+		if (!open() || navigableResults.length === 0) {
 			return;
 		}
 
 		if (event.key === "ArrowDown") {
 			event.preventDefault();
-			setActiveIndex((index) => (index + 1) % results().length);
+			setActiveIndex((index) => (index + 1) % navigableResults.length);
 		}
 
 		if (event.key === "ArrowUp") {
 			event.preventDefault();
-			setActiveIndex((index) => (index <= 0 ? results().length - 1 : index - 1));
+			setActiveIndex((index) => (index <= 0 ? navigableResults.length - 1 : index - 1));
 		}
 
 		if (event.key === "Enter" && activeIndex() >= 0) {
 			event.preventDefault();
-			const result = results()[activeIndex()];
+			const result = navigableResults[activeIndex()];
 			if (result) {
 				selectResult(result);
 			}
@@ -156,8 +203,8 @@ export default (props: EntitySearchProps) => {
 			setCatalogReady(true);
 
 			if (query().trim()) {
-				const currentItemResults = results().filter((result) => result.kind === "item");
-				setResults(mergeResults(searchCatalog(nextCatalog, query()), currentItemResults));
+				const currentRemoteResults = results().filter((result) => result.source === "tibiawiki");
+				setResults(mergeResults(searchCatalog(nextCatalog, query()), currentRemoteResults));
 			}
 		});
 
@@ -206,48 +253,59 @@ export default (props: EntitySearchProps) => {
 					id="entity-search-results"
 					ariaLabel="Rolagem dos resultados da pesquisa"
 					viewportRole="listbox"
-					viewportAriaLabel="Resultados do catálogo oficial"
+					viewportAriaLabel="Resultados da busca"
 					class={styles.resultsPanel}
 					viewportClass={styles.resultsViewport}
 				>
 					<Show when={results().length > 0}>
-						<For each={results()}>
-							{(result, index) => (
-								<button
-									class={styles.result}
-									data-active={activeIndex() === index()}
-									type="button"
-									onMouseEnter={() => setActiveIndex(index())}
-									onClick={() => selectResult(result)}
-								>
-									<Show when={result.imageUrl}>
-										<img
-											class={styles.resultImage}
-											src={result.imageUrl}
-											alt=""
-											loading="lazy"
-											decoding="async"
-											onLoad={showLoadedImage}
-											onError={hideBrokenImage}
-										/>
-									</Show>
-									<span class={styles.resultBody}>
-										<span class={styles.resultTopline}>
-											<strong class={styles.resultTitle}>{result.title}</strong>
-											<span class={styles.resultKind}>{resultKindLabel[result.kind]}</span>
-										</span>
-										<span class={styles.resultSnippet}>{result.snippet}</span>
-									</span>
-								</button>
-							)}
-						</For>
+						<Show when={bossResults().length > 0}>
+							<div class={styles.resultGroupTitle}>Bosses</div>
+							<For each={bossResults()}>
+								{(result) => (
+									<SearchResultButton
+										result={result}
+										isActive={() => activeIndex() === resultIndex(result)}
+										onHover={() => setActiveIndex(resultIndex(result))}
+										onSelect={selectResult}
+									/>
+								)}
+							</For>
+						</Show>
+
+						<Show when={monsterResults().length > 0}>
+							<div class={styles.resultGroupTitle}>Monstros</div>
+							<For each={monsterResults()}>
+								{(result) => (
+									<SearchResultButton
+										result={result}
+										isActive={() => activeIndex() === resultIndex(result)}
+										onHover={() => setActiveIndex(resultIndex(result))}
+										onSelect={selectResult}
+									/>
+								)}
+							</For>
+						</Show>
+
+						<Show when={otherResults().length > 0}>
+							<div class={styles.resultGroupTitle}>Outros resultados</div>
+							<For each={otherResults()}>
+								{(result) => (
+									<SearchResultButton
+										result={result}
+										isActive={() => activeIndex() === resultIndex(result)}
+										onHover={() => setActiveIndex(resultIndex(result))}
+										onSelect={selectResult}
+									/>
+								)}
+							</For>
+						</Show>
 					</Show>
 
 					<Show when={!catalogReady()}>
 						<div class={styles.searchStatus}>Carregando catálogo oficial...</div>
 					</Show>
 					<Show when={itemSearchLoading()}>
-						<div class={styles.searchStatus}>Procurando itens na TibiaWiki...</div>
+						<div class={styles.searchStatus}>Procurando itens e bosses na TibiaWiki...</div>
 					</Show>
 					<Show when={!itemSearchLoading() && catalogReady() && results().length === 0}>
 						<div class={styles.searchStatus}>Nenhuma entidade encontrada nos catálogos oficiais.</div>

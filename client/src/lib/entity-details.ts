@@ -601,7 +601,7 @@ export const fetchWikiDetails = async (
 		html,
 		wikitext,
 		sourceUrl: getWikiUrl(resolvedTitle),
-		imageUrl: kind === "rune" || kind === "item" ? extractInfoboxImageUrl(html) : undefined,
+		imageUrl: kind === "monster" || kind === "rune" || kind === "item" ? extractInfoboxImageUrl(html) : undefined,
 	};
 };
 
