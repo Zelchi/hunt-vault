@@ -1,5 +1,6 @@
 import Fuse from "fuse.js";
 
+import { EMPTY_ENTITY_CATALOG } from "@/const/entity";
 import {
 	TIBIAWATCH_API,
 	TIBIAWATCH_ORIGIN,
@@ -35,7 +36,6 @@ import type {
 } from "@/type/entity";
 import type { TibiaWatchRespawnDetails } from "@/type/tibiawatch";
 
-const emptyCatalog: EntityCatalog = { monsters: [], spells: [], runes: [], imbuements: [] };
 let catalogSearchIndex: { catalog: EntityCatalog; fuse: Fuse<CatalogSearchEntry> } | undefined;
 const wikiCategoryCache = new Map<string, WikiCategoryCacheEntry>();
 let wikiSearchCache: Record<string, SearchCacheEntry> | undefined;
@@ -599,7 +599,7 @@ export const loadEntityCatalog = async (): Promise<EntityCatalog> => {
 			return loadWikiCategoryMembers(title);
 		}),
 	);
-	const nextCatalog: EntityCatalog = { ...emptyCatalog };
+	const nextCatalog: EntityCatalog = { ...EMPTY_ENTITY_CATALOG };
 
 	WIKI_CATALOG_REQUESTS.forEach(({ key, kind }, index) => {
 		const response = categoryResponses[index];
@@ -617,7 +617,7 @@ export const loadEntityCatalog = async (): Promise<EntityCatalog> => {
 		return nextCatalog;
 	}
 
-	return cached?.catalog ?? emptyCatalog;
+	return cached?.catalog ?? EMPTY_ENTITY_CATALOG;
 };
 
 const catalogResult = (entity: CatalogEntity): EntitySearchResult => {

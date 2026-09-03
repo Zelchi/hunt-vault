@@ -2,7 +2,7 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 
 import CustomScrollbar from "@/component/custom-scrollbar";
 import { SearchIcon } from "@/component/icons";
-import { ENTITY_KIND_LABEL, ENTITY_SEARCH_FILTERS } from "@/const/entity";
+import { EMPTY_ENTITY_CATALOG, ENTITY_KIND_LABEL, ENTITY_SEARCH_FILTERS } from "@/const/entity";
 import {
 	cacheSearchResults,
 	cacheTibiaWatchHunts,
@@ -77,7 +77,7 @@ const SearchResultButton = (props: SearchResultButtonProps) => {
 export default (props: EntitySearchProps) => {
 	const [query, setQuery] = createSignal("");
 	const [results, setResults] = createSignal<EntitySearchResult[]>([]);
-	const [catalog, setCatalog] = createSignal<EntityCatalog>({ monsters: [], spells: [], runes: [], imbuements: [] });
+	const [catalog, setCatalog] = createSignal<EntityCatalog>(EMPTY_ENTITY_CATALOG);
 	const [catalogReady, setCatalogReady] = createSignal(false);
 	const [itemSearchLoading, setItemSearchLoading] = createSignal(false);
 	const [open, setOpen] = createSignal(false);

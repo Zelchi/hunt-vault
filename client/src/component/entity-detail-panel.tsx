@@ -1,7 +1,8 @@
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
 
 import CustomScrollbar from "@/component/custom-scrollbar";
-import { ENTITY_KIND_LABEL } from "@/const/entity";
+import { CREATURE_RESISTANCE_KIND_LABEL, ENTITY_KIND_LABEL } from "@/const/entity";
+import { HUNT_DIFFICULTY_LABEL } from "@/const/tibiawatch";
 import {
 	extractCreatureSummary,
 	extractImbuementSummary,
@@ -24,14 +25,6 @@ import type { TibiaWatchRespawnDetails } from "@/type/tibiawatch";
 
 const hideBrokenImage = (event: Event) => {
 	(event.currentTarget as HTMLImageElement).hidden = true;
-};
-
-const resistanceKindLabel: Record<CreatureSummary["resistances"][number]["kind"], string> = {
-	immune: "Imune",
-	strong: "Resistente",
-	neutral: "Neutro",
-	weak: "Vulnerável",
-	healed: "Cura",
 };
 
 const resistanceGroups = (resistances: CreatureResistance[]) => {
@@ -89,7 +82,7 @@ const CreatureSummaryView = (props: CreatureSummaryViewProps) => {
 																{resistance.label}
 															</span>
 															<strong>{resistance.value}</strong>
-															<small>{resistanceKindLabel[resistance.kind]}</small>
+															<small>{CREATURE_RESISTANCE_KIND_LABEL[resistance.kind]}</small>
 														</div>
 													);
 												}}
@@ -253,12 +246,6 @@ const ImbuementSummaryView = (props: ImbuementSummaryViewProps) => {
 			</Show>
 		</div>
 	);
-};
-
-const HUNT_DIFFICULTY_LABEL: Record<string, string> = {
-	easy: "Fácil",
-	medium: "Média",
-	hard: "Difícil",
 };
 
 const formatHuntLevel = (minLevel?: number, maxLevel?: number) => {
