@@ -2,13 +2,14 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 
 import CustomScrollbar from "@/component/custom-scrollbar";
 import { SearchIcon } from "@/component/icons";
-import { ENTITY_KIND_LABEL } from "@/const/entity";
+import { ENTITY_KIND_LABEL, ENTITY_SEARCH_FILTERS, type EntitySearchFilter } from "@/const/entity";
 import {
 	cacheSearchResults,
 	type EntityCatalog,
 	type EntitySearchResult,
 	getCachedSearchResults,
 	loadEntityCatalog,
+	mergeSearchResults,
 	normalizeSearchText,
 	searchCatalog,
 	searchWikiCreatures,
@@ -29,20 +30,6 @@ const hideBrokenImage = (event: Event) => {
 
 const showLoadedImage = (event: Event) => {
 	(event.currentTarget as HTMLImageElement).hidden = false;
-};
-
-const mergeResults = (catalogResults: EntitySearchResult[], remoteResults: EntitySearchResult[]) => {
-	const uniqueResults = new Map<string, EntitySearchResult>();
-	for (const result of [...catalogResults, ...remoteResults]) {
-		const key = `${result.kind}:${normalizeSearchText(result.title)}`;
-		const existingResult = uniqueResults.get(key);
-		if (!existingResult) {
-			uniqueResults.set(key, result);
-		} else if (result.isBoss && !existingResult.isBoss) {
-			uniqueResults.set(key, { ...existingResult, isBoss: true, snippet: "Boss" });
-		}
-	}
-	return [...uniqueResults.values()];
 };
 
 const SearchResultButton = (props: {
@@ -90,42 +77,71 @@ export default (props: EntitySearchProps) => {
 	const [itemSearchLoading, setItemSearchLoading] = createSignal(false);
 	const [open, setOpen] = createSignal(false);
 	const [activeIndex, setActiveIndex] = createSignal(-1);
+	const [selectedFilter, setSelectedFilter] = createSignal<EntitySearchFilter>("all");
 	let searchRoot!: HTMLDivElement;
 	let searchInput!: HTMLInputElement;
 	let itemSearchController: AbortController | undefined;
 	let itemSearchTimer: number | undefined;
-	const bossResults = () => {
+	const filteredResults = () => {
+		const filter = selectedFilter();
+		if (filter === "all") {
+			return results();
+		}
+		if (filter === "boss") {
+			return results().filter((result) => {
+				return result.kind === "monster" && result.isBoss === true;
+			});
+		}
+		if (filter === "monster") {
+			return results().filter((result) => {
+				return result.kind === "monster" && result.isBoss !== true;
+			});
+		}
 		return results().filter((result) => {
+			return result.kind === filter;
+		});
+	};
+	const bossResults = () => {
+		return filteredResults().filter((result) => {
 			return result.kind === "monster" && result.isBoss === true;
 		});
 	};
 	const monsterResults = () => {
-		return results().filter((result) => {
+		return filteredResults().filter((result) => {
 			return result.kind === "monster" && result.isBoss !== true;
 		});
 	};
 	const imbuementResults = () => {
-		return results().filter((result) => {
+		return filteredResults().filter((result) => {
 			return result.kind === "imbuement";
 		});
 	};
 	const runeResults = () => {
-		return results().filter((result) => {
+		return filteredResults().filter((result) => {
 			return result.kind === "rune";
 		});
 	};
+	const spellResults = () => {
+		return filteredResults().filter((result) => {
+			return result.kind === "spell";
+		});
+	};
 	const otherResults = () => {
-		return results().filter((result) => {
-			return result.kind !== "monster" && result.kind !== "imbuement" && result.kind !== "rune";
+		return filteredResults().filter((result) => {
+			return result.kind !== "monster" && result.kind !== "imbuement" && result.kind !== "rune" && result.kind !== "spell";
 		});
 	};
 	const visibleResults = () => {
-		return [...imbuementResults(), ...runeResults(), ...bossResults(), ...monsterResults(), ...otherResults()];
+		return [...imbuementResults(), ...runeResults(), ...spellResults(), ...bossResults(), ...monsterResults(), ...otherResults()];
 	};
 	const resultIndex = (result: EntitySearchResult) => {
 		return visibleResults().findIndex((candidate) => {
 			return candidate.id === result.id;
 		});
+	};
+	const selectFilter = (filter: EntitySearchFilter) => {
+		setSelectedFilter(filter);
+		setActiveIndex(-1);
 	};
 
 	const cancelItemSearch = () => {
@@ -162,7 +178,7 @@ export default (props: EntitySearchProps) => {
 		setActiveIndex(-1);
 		cancelItemSearch();
 		const localResults = searchCatalog(catalog(), value);
-		setResults(mergeResults(localResults, getCachedSearchResults(value)));
+		setResults(mergeSearchResults(localResults, getCachedSearchResults(value)));
 
 		if (normalizeSearchText(value).length < 2) {
 			return;
@@ -186,7 +202,9 @@ export default (props: EntitySearchProps) => {
 							return search.status === "fulfilled" ? search.value : [];
 						});
 						cacheSearchResults(value, remoteResults);
-						setResults(mergeResults(searchCatalog(catalog(), value), [...getCachedSearchResults(value), ...remoteResults]));
+						setResults(
+							mergeSearchResults(searchCatalog(catalog(), value), [...getCachedSearchResults(value), ...remoteResults]),
+						);
 					}
 				})
 				.finally(() => {
@@ -251,7 +269,7 @@ export default (props: EntitySearchProps) => {
 					return result.source === "tibiawiki";
 				});
 				setResults(
-					mergeResults(searchCatalog(nextCatalog, query()), [...getCachedSearchResults(query()), ...currentRemoteResults]),
+					mergeSearchResults(searchCatalog(nextCatalog, query()), [...getCachedSearchResults(query()), ...currentRemoteResults]),
 				);
 			}
 		});
@@ -281,9 +299,7 @@ export default (props: EntitySearchProps) => {
 					aria-autocomplete="list"
 					onInput={handleInput}
 					onFocus={() => {
-						if (query().trim()) {
-							setOpen(true);
-						}
+						return setOpen(true);
 					}}
 					onKeyDown={handleKeyDown}
 				/>
@@ -306,7 +322,6 @@ export default (props: EntitySearchProps) => {
 			<Show when={open() && query().trim().length > 0}>
 				<CustomScrollbar
 					variant="nested"
-					scrollbarVariant="minimal"
 					id="entity-search-results"
 					ariaLabel="Rolagem dos resultados da pesquisa"
 					viewportRole="listbox"
@@ -314,6 +329,26 @@ export default (props: EntitySearchProps) => {
 					class={styles.resultsPanel}
 					viewportClass={styles.resultsViewport}
 				>
+					<nav class={styles.filterBar} aria-label="Filtrar resultados da pesquisa">
+						<For each={ENTITY_SEARCH_FILTERS}>
+							{(filter) => {
+								return (
+									<button
+										class={styles.filterButton}
+										data-active={selectedFilter() === filter.value}
+										aria-pressed={selectedFilter() === filter.value}
+										type="button"
+										onClick={() => {
+											return selectFilter(filter.value);
+										}}
+									>
+										{filter.label}
+									</button>
+								);
+							}}
+						</For>
+					</nav>
+
 					<Show when={results().length > 0}>
 						<Show when={imbuementResults().length > 0}>
 							<div class={styles.resultGroupTitle}>Imbuements</div>
@@ -338,6 +373,26 @@ export default (props: EntitySearchProps) => {
 						<Show when={runeResults().length > 0}>
 							<div class={styles.resultGroupTitle}>Runas</div>
 							<For each={runeResults()}>
+								{(result) => {
+									return (
+										<SearchResultButton
+											result={result}
+											isActive={() => {
+												return activeIndex() === resultIndex(result);
+											}}
+											onHover={() => {
+												return setActiveIndex(resultIndex(result));
+											}}
+											onSelect={selectResult}
+										/>
+									);
+								}}
+							</For>
+						</Show>
+
+						<Show when={spellResults().length > 0}>
+							<div class={styles.resultGroupTitle}>Habilidades</div>
+							<For each={spellResults()}>
 								{(result) => {
 									return (
 										<SearchResultButton

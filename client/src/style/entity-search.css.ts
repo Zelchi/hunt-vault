@@ -1,4 +1,4 @@
-import { keyframes, style } from "@vanilla-extract/css";
+import { globalStyle, keyframes, style } from "@vanilla-extract/css";
 
 export const searchSlot = style({
 	position: "relative",
@@ -101,6 +101,55 @@ export const clearButton = style({
 	},
 });
 
+export const filterBar = style({
+	display: "flex",
+	width: "100%",
+	gap: "0.35rem",
+	justifyContent: "center",
+	padding: "0.45rem 0.75rem",
+	overflowX: "auto",
+	borderBottom: "1px solid #1a2b22",
+	background: "#101512",
+	scrollbarWidth: "none",
+	selectors: {
+		"&::-webkit-scrollbar": {
+			display: "none",
+		},
+	},
+	"@media": {
+		"screen and (max-width: 640px)": {
+			justifyContent: "flex-start",
+		},
+	},
+});
+
+export const filterButton = style({
+	flex: "0 0 auto",
+	padding: "0.35rem 0.55rem",
+	border: "1px solid #2b4638",
+	borderRadius: 0,
+	background: "#101512",
+	color: "#8b9a8f",
+	fontSize: "0.58rem",
+	fontWeight: 700,
+	letterSpacing: "0.04em",
+	textTransform: "uppercase",
+	whiteSpace: "nowrap",
+	transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
+	selectors: {
+		"&:hover": {
+			borderColor: "#526d5b",
+			background: "#18231d",
+			color: "#f4f1ea",
+		},
+		'&[data-active="true"]': {
+			borderColor: "#d9a441",
+			background: "#1b2c22",
+			color: "#d9a441",
+		},
+	},
+});
+
 const searchLoadingSpin = keyframes({
 	from: { transform: "rotate(0deg)" },
 	to: { transform: "rotate(360deg)" },
@@ -121,6 +170,7 @@ export const resultsPanel = style({
 	top: "calc(100% + 0.45rem)",
 	right: 0,
 	left: 0,
+	height: "min(24rem, calc(100dvh - 5rem))",
 	maxHeight: "min(24rem, calc(100dvh - 5rem))",
 	border: "2px solid #2b4638",
 	background: "#101512",
@@ -128,9 +178,29 @@ export const resultsPanel = style({
 	"@media": {
 		"screen and (max-width: 640px)": {
 			top: "calc(100% + 0.35rem)",
+			height: "min(22rem, calc(100dvh - 12rem))",
 			maxHeight: "min(22rem, calc(100dvh - 12rem))",
 		},
 	},
+});
+
+globalStyle(`${resultsPanel} > [role="scrollbar"]`, {
+	top: 0,
+	right: 0,
+	bottom: 0,
+	width: "0.75rem",
+	borderTop: 0,
+	borderBottom: 0,
+	borderRight: 0,
+});
+
+globalStyle(`${resultsPanel} > [role="scrollbar"][data-visible="false"]`, {
+	opacity: 1,
+	pointerEvents: "none",
+});
+
+globalStyle(`${resultsPanel} > [role="scrollbar"][data-visible="false"] > div`, {
+	opacity: 0,
 });
 
 export const resultsViewport = style({

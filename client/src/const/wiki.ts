@@ -16,7 +16,7 @@ export const WIKI_CATALOG_REQUESTS = [
 ];
 
 export const WIKI_CATALOG_CACHE_KEY = "hunt-vault:wiki-entity-catalog:v1";
-export const WIKI_SEARCH_CACHE_KEY = "hunt-vault:wiki-search-results:v1";
+export const WIKI_SEARCH_CACHE_KEY = "hunt-vault:wiki-search-results:v2";
 export const WIKI_CATALOG_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 export const WIKI_SEARCH_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 

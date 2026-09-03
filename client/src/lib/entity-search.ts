@@ -53,10 +53,7 @@ type SearchCacheEntry = { savedAt: number; results: EntitySearchResult[] };
 let wikiSearchCache: Record<string, SearchCacheEntry> | undefined;
 
 const getWikiImageUrl = (title: string) => {
-	const fileTitle = title
-		.replace(/\s+\(criatura\)$/i, "")
-		.trim()
-		.replace(/\s+/g, "_");
+	const fileTitle = title.trim().replace(/\s+/g, "_");
 	return `${TIBIA_WIKI_ORIGIN}/wiki/Special:FilePath/${encodeURIComponent(`${fileTitle}.gif`)}`;
 };
 
@@ -88,6 +85,11 @@ export const normalizeSearchText = (value: string) => {
 		.trim();
 };
 
+const isRuneTitle = (title: string) => {
+	const normalizedTitle = normalizeSearchText(title).replace(/\s+\([^)]*\)\s*$/, "");
+	return /(?:^|\s)(?:rune|runa)$/.test(normalizedTitle);
+};
+
 const isEntityKind = (value: unknown): value is EntityKind => {
 	return value === "monster" || value === "spell" || value === "rune" || value === "item" || value === "imbuement";
 };
@@ -102,12 +104,62 @@ const isCachedSearchResult = (value: unknown): value is EntitySearchResult => {
 	);
 };
 
-const mergeCachedResults = (currentResults: EntitySearchResult[], nextResults: EntitySearchResult[]) => {
+const getWikiPageId = (result: EntitySearchResult) => {
+	const wikiIdMatch = result.id.match(/(?:^|:)wiki:(\d+)$/);
+	if (wikiIdMatch) {
+		return wikiIdMatch[1];
+	}
+
+	const directIdMatch = result.id.match(/^(?:item|rune|spell|monster|imbuement):(\d+)$/);
+	return directIdMatch?.[1];
+};
+
+const normalizeSearchResult = (result: EntitySearchResult): EntitySearchResult => {
+	const isMisclassifiedRune = result.kind === "rune" && !isRuneTitle(result.title);
+	const kind = isMisclassifiedRune ? "item" : result.kind;
+	const pageId = getWikiPageId(result);
+	const imageUrl = kind === "imbuement" ? getImbuementImageUrl(result.title) : getWikiImageUrl(result.title);
+
+	return {
+		...result,
+		id: isMisclassifiedRune && pageId ? `item:${pageId}` : result.id,
+		kind,
+		imageUrl,
+		snippet: isMisclassifiedRune ? "Item" : result.snippet,
+	};
+};
+
+const getSearchResultKey = (result: EntitySearchResult) => {
+	const pageId = getWikiPageId(result);
+	return pageId ? `wiki:${pageId}` : `${result.kind}:${normalizeSearchText(result.title)}`;
+};
+
+const getSearchResultPriority = (result: EntitySearchResult) => {
+	if (result.kind === "imbuement") {
+		return 0;
+	}
+	if (result.kind === "rune") {
+		return 1;
+	}
+	if (result.kind === "spell") {
+		return 2;
+	}
+	if (result.kind === "monster" && result.isBoss) {
+		return 3;
+	}
+	if (result.kind === "monster") {
+		return 4;
+	}
+	return 5;
+};
+
+export const mergeSearchResults = (currentResults: EntitySearchResult[], nextResults: EntitySearchResult[]) => {
 	const uniqueResults = new Map<string, EntitySearchResult>();
-	for (const result of [...currentResults, ...nextResults]) {
-		const key = `${result.kind}:${normalizeSearchText(result.title)}`;
+	for (const rawResult of [...currentResults, ...nextResults]) {
+		const result = normalizeSearchResult(rawResult);
+		const key = getSearchResultKey(result);
 		const existingResult = uniqueResults.get(key);
-		if (!existingResult) {
+		if (!existingResult || getSearchResultPriority(result) < getSearchResultPriority(existingResult)) {
 			uniqueResults.set(key, result);
 		} else if (result.isBoss && !existingResult.isBoss) {
 			uniqueResults.set(key, { ...existingResult, isBoss: true, snippet: "Boss" });
@@ -199,7 +251,7 @@ export const getCachedSearchResults = (query: string) => {
 	const allResults = Object.values(cache).flatMap((entry) => {
 		return entry.results;
 	});
-	return rankCachedResults(query, mergeCachedResults(cache[normalizedQuery]?.results ?? [], allResults));
+	return rankCachedResults(query, mergeSearchResults(cache[normalizedQuery]?.results ?? [], allResults));
 };
 
 export const cacheSearchResults = (query: string, results: EntitySearchResult[]) => {
@@ -211,7 +263,7 @@ export const cacheSearchResults = (query: string, results: EntitySearchResult[])
 	const cache = readWikiSearchCache();
 	cache[normalizedQuery] = {
 		savedAt: Date.now(),
-		results: mergeCachedResults(cache[normalizedQuery]?.results ?? [], results),
+		results: mergeSearchResults(cache[normalizedQuery]?.results ?? [], results),
 	};
 	writeWikiSearchCache();
 };
@@ -228,6 +280,9 @@ const readCachedEntities = (value: unknown, expectedKind: EntityKind): CatalogEn
 		if (item.kind !== expectedKind) {
 			return [];
 		}
+		if (expectedKind === "rune" && !isRuneTitle(item.name)) {
+			return [];
+		}
 
 		return [
 			{
@@ -235,7 +290,7 @@ const readCachedEntities = (value: unknown, expectedKind: EntityKind): CatalogEn
 				name: item.name,
 				kind: item.kind,
 				lookupId: typeof item.lookupId === "string" ? item.lookupId : item.name,
-				imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : undefined,
+				imageUrl: expectedKind === "imbuement" ? getImbuementImageUrl(item.name) : getWikiImageUrl(item.name),
 			},
 		];
 	});
@@ -384,6 +439,9 @@ const createCatalogEntities = (pages: Record<string, unknown>[], kind: EntityKin
 	return pages.flatMap((page): CatalogEntity[] => {
 		const title = page.title as string;
 		const normalizedTitle = normalizeSearchText(title);
+		if (kind === "rune" && !isRuneTitle(title)) {
+			return [];
+		}
 		if (seenTitles.has(normalizedTitle)) {
 			return [];
 		}
@@ -521,10 +579,12 @@ const isCreaturePage = (page: Record<string, unknown>) => {
 };
 
 const isRunePage = (page: Record<string, unknown>) => {
+	const title = typeof page.title === "string" ? page.title : "";
+	const content = readWikiRevisionContent(page);
 	return (
-		hasWikiCategory(page, ["categoria:runas"]) ||
-		/\{\{\s*Infobox(?:[_ ](?:Rune|Runa))\b/i.test(readWikiRevisionContent(page)) ||
-		/\(\s*runa\s*\)$/i.test(page.title as string)
+		/\{\{\s*Infobox(?:[_ ](?:Rune|Runa))\b/i.test(content) ||
+		isRuneTitle(title) ||
+		(hasWikiCategory(page, ["categoria:runas"]) && !isItemPage(page))
 	);
 };
 
@@ -584,6 +644,7 @@ export const searchWikiItems = async (query: string, signal?: AbortSignal): Prom
 		action: "query",
 		pageids: pageIDs,
 		prop: "categories",
+		redirects: "1",
 		cllimit: "50",
 		format: "json",
 		formatversion: "2",
@@ -655,6 +716,7 @@ export const searchWikiCreatures = async (query: string, signal?: AbortSignal): 
 		action: "query",
 		pageids: pageIDs,
 		prop: "revisions|categories",
+		redirects: "1",
 		rvprop: "content",
 		rvslots: "main",
 		cllimit: "100",
@@ -728,6 +790,7 @@ const searchWikiSpellPages = async (query: string, kind: "spell" | "rune", signa
 		action: "query",
 		pageids: pageIDs,
 		prop: "revisions|categories",
+		redirects: "1",
 		rvprop: "content",
 		rvslots: "main",
 		cllimit: "100",
@@ -787,26 +850,26 @@ export const searchWikiImbuements = async (query: string, signal?: AbortSignal):
 	const showAllImbuements = ["imbuement", "imbuements", "encantamento", "encantamentos"].includes(normalizedQuery);
 	const matchingPages = showAllImbuements
 		? [...pages].sort((left, right) => {
-			return (left.title as string).localeCompare(right.title as string);
-		})
+				return (left.title as string).localeCompare(right.title as string);
+			})
 		: new Fuse(
-			pages.map((page) => {
-				return {
-					page,
-					title: normalizeSearchText(page.title as string),
-				};
-			}),
-			{
-				keys: ["title"],
-				ignoreLocation: true,
-				minMatchCharLength: 2,
-				threshold: 0.42,
-			},
-		)
-			.search(normalizedQuery, { limit: 30 })
-			.map(({ item }) => {
-				return item.page;
-			});
+				pages.map((page) => {
+					return {
+						page,
+						title: normalizeSearchText(page.title as string),
+					};
+				}),
+				{
+					keys: ["title"],
+					ignoreLocation: true,
+					minMatchCharLength: 2,
+					threshold: 0.42,
+				},
+			)
+				.search(normalizedQuery, { limit: 30 })
+				.map(({ item }) => {
+					return item.page;
+				});
 
 	return matchingPages.map((page): EntitySearchResult => {
 		const title = page.title as string;

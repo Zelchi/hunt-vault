@@ -4,12 +4,12 @@ import CustomScrollbar from "@/component/custom-scrollbar";
 import { ENTITY_KIND_LABEL } from "@/const/entity";
 import {
 	type CreatureSummary,
-	type ImbuementSummary,
-	type ItemSummary,
 	extractCreatureSummary,
 	extractImbuementSummary,
 	extractItemSummary,
 	fetchWikiDetails,
+	type ImbuementSummary,
+	type ItemSummary,
 	sanitizeWikiHtml,
 	type WikiPageDetails,
 } from "@/lib/entity-details";
@@ -265,7 +265,7 @@ export default (props: EntityDetailPanelProps) => {
 	const [error, setError] = createSignal("");
 	let activeController: AbortController | undefined;
 	const entityImageUrl = () => {
-		return props.entity.imageUrl ?? page()?.imageUrl;
+		return page()?.imageUrl ?? props.entity.imageUrl;
 	};
 
 	createEffect(() => {
