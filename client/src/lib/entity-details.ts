@@ -110,7 +110,9 @@ const splitTopLevel = (value: string, separator: string) => {
 };
 
 const readInfobox = (wikitext: string) => {
-	const match = /\{\{\s*Infobox(?:[_ ](?:Creature|Criatura|Item|Imbuement))?\b/i.exec(wikitext);
+	const match = /\{\{\s*Infobox(?:[_ ](?:Creature|Criatura|Item|Imbuement|Rune|Runas|Spell|Magia|Habilidade|Book|Livro))?\b/i.exec(
+		wikitext,
+	);
 	if (!match) {
 		return {};
 	}
@@ -313,6 +315,8 @@ export const extractItemSummary = (wikitext?: string): ItemSummary | undefined =
 	const itemAttributeDefinitions: ReadonlyArray<readonly [string, string[]]> = [
 		["Categoria", ["itemclass"]],
 		["Tipo", ["primarytype"]],
+		["Autor", ["author"]],
+		["Localização", ["location"]],
 		["Peso", ["weight"]],
 		["Vocação", ["vocrequired"]],
 		["Level mínimo", ["levelrequired"]],
@@ -325,6 +329,9 @@ export const extractItemSummary = (wikitext?: string): ItemSummary | undefined =
 		["Imbuement", ["imbuement"]],
 		["Classificação", ["classificacao", "classification"]],
 		["Max tier", ["max_tier", "maxtier"]],
+		["Traduzido", ["traduzido"]],
+		["Implementado", ["implemented"]],
+		["Código TIBN", ["tibn1", "tibn"]],
 	];
 	const attributes = itemAttributeDefinitions
 		.map(([label, keys]) => {
@@ -343,7 +350,7 @@ export const extractItemSummary = (wikitext?: string): ItemSummary | undefined =
 			return Boolean(attribute);
 		});
 
-	const description = shortenItemText(firstItemField(fields, ["attrib", "notes"]));
+	const description = shortenItemText(firstItemField(fields, ["attrib", "notes", "blurb", "flavortext"]));
 	const sourceDefinitions: ReadonlyArray<readonly [string, string, number]> = [
 		["Drop", "droppedby", 6],
 		["Raid", "droppedRaidby", 4],

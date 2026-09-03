@@ -137,7 +137,7 @@ export const normalizeSearchText = (value: string) => {
 };
 
 const isRuneTitle = (title: string) => {
-	const normalizedTitle = normalizeSearchText(title).replace(/\s+\([^)]*\)\s*$/, "");
+	const normalizedTitle = normalizeSearchText(title);
 	return /(?:^|\s)(?:rune|runa)$/.test(normalizedTitle);
 };
 
@@ -186,7 +186,7 @@ const normalizeSearchResult = (result: EntitySearchResult): EntitySearchResult =
 			...result,
 			id: pageId ? `item:${pageId}` : result.id,
 			kind: "item",
-			imageUrl: getWikiImageUrl(result.title),
+			imageUrl: result.imageUrl ?? getWikiImageUrl(result.title),
 			snippet: "Item",
 		};
 	}
@@ -196,9 +196,7 @@ const normalizeSearchResult = (result: EntitySearchResult): EntitySearchResult =
 		imageUrl:
 			result.source === "tibiawatch"
 				? result.imageUrl
-				: result.kind === "imbuement"
-					? getImbuementImageUrl(result.title)
-					: getWikiImageUrl(result.title),
+				: (result.imageUrl ?? (result.kind === "imbuement" ? getImbuementImageUrl(result.title) : getWikiImageUrl(result.title))),
 	};
 };
 
@@ -243,6 +241,15 @@ export const mergeSearchResults = (currentResults: EntitySearchResult[], nextRes
 			uniqueResults.set(key, result);
 		} else if (result.source === "tibiawiki" && result.isBoss && existingResult.source === "tibiawiki" && !existingResult.isBoss) {
 			uniqueResults.set(key, { ...existingResult, isBoss: true, snippet: "Boss" });
+		} else if (
+			result.source === "tibiawiki" &&
+			result.kind === "item" &&
+			result.imageUrl &&
+			existingResult.source === "tibiawiki" &&
+			existingResult.kind === "item" &&
+			result.imageUrl !== getWikiImageUrl(result.title)
+		) {
+			uniqueResults.set(key, { ...existingResult, ...result });
 		}
 	}
 
@@ -516,6 +523,37 @@ const readWikiItemPages = (value: unknown) => {
 	return value.query.pages.filter((page): page is Record<string, unknown> => {
 		return isRecord(page) && typeof page.title === "string" && Array.isArray(page.categories);
 	});
+};
+
+const getWikiPageImageUrl = (page: Record<string, unknown>) => {
+	const imageSources = [page.original, page.thumbnail].flatMap((image) => {
+		return isRecord(image) && typeof image.source === "string" ? [image.source] : [];
+	});
+
+	for (const source of imageSources) {
+		const imageUrl = new URL(source, TIBIA_WIKI_ORIGIN);
+		if (imageUrl.protocol === "http:" || imageUrl.protocol === "https:") {
+			return imageUrl.href;
+		}
+	}
+
+	if (Array.isArray(page.categories)) {
+		const bookCategory = page.categories.find((category) => {
+			return (
+				isRecord(category) &&
+				typeof category.title === "string" &&
+				normalizeSearchText(category.title).startsWith("categoria:livros do tipo ")
+			);
+		});
+		if (isRecord(bookCategory) && typeof bookCategory.title === "string") {
+			const imageName = bookCategory.title.replace(/^Categoria:Livros do Tipo\s+/i, "").trim();
+			if (imageName) {
+				return getWikiImageUrl(imageName);
+			}
+		}
+	}
+
+	return undefined;
 };
 
 const readWikiCreaturePages = (value: unknown) => {
@@ -822,7 +860,7 @@ export const searchWikiItems = async (query: string, signal?: AbortSignal): Prom
 					kind: "item",
 					source: "tibiawiki",
 					lookupId: title,
-					imageUrl: getWikiImageUrl(title),
+					imageUrl: getWikiPageImageUrl(page) ?? getWikiImageUrl(title),
 					snippet: "Item",
 				},
 			];
@@ -1003,26 +1041,26 @@ export const searchWikiImbuements = async (query: string, signal?: AbortSignal):
 	const showAllImbuements = ["imbuement", "imbuements", "encantamento", "encantamentos"].includes(normalizedQuery);
 	const matchingPages = showAllImbuements
 		? [...pages].sort((left, right) => {
-				return (left.title as string).localeCompare(right.title as string);
-			})
+			return (left.title as string).localeCompare(right.title as string);
+		})
 		: new Fuse(
-				pages.map((page) => {
-					return {
-						page,
-						title: normalizeSearchText(page.title as string),
-					};
-				}),
-				{
-					keys: ["title"],
-					ignoreLocation: true,
-					minMatchCharLength: 2,
-					threshold: 0.42,
-				},
-			)
-				.search(normalizedQuery, { limit: 30 })
-				.map(({ item }) => {
-					return item.page;
-				});
+			pages.map((page) => {
+				return {
+					page,
+					title: normalizeSearchText(page.title as string),
+				};
+			}),
+			{
+				keys: ["title"],
+				ignoreLocation: true,
+				minMatchCharLength: 2,
+				threshold: 0.42,
+			},
+		)
+			.search(normalizedQuery, { limit: 30 })
+			.map(({ item }) => {
+				return item.page;
+			});
 
 	return matchingPages.map((page): EntitySearchResult => {
 		const title = page.title as string;
