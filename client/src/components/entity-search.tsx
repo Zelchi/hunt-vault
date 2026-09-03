@@ -2,7 +2,14 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 
 import CustomScrollbar from "@/components/custom-scrollbar";
 import { SearchIcon } from "@/components/icons";
-import { type EntityCatalog, type EntitySearchResult, loadEntityCatalog, searchCatalog } from "@/lib/entity-search";
+import {
+	type EntityCatalog,
+	type EntitySearchResult,
+	loadEntityCatalog,
+	normalizeSearchText,
+	searchCatalog,
+	searchWikiItems,
+} from "@/lib/entity-search";
 import * as styles from "@/styles/entity-search.css";
 
 type EntitySearchProps = {
@@ -13,6 +20,7 @@ const resultKindLabel: Record<EntitySearchResult["kind"], string> = {
 	monster: "Monstro",
 	spell: "Habilidade",
 	rune: "Runa",
+	item: "Item",
 };
 
 const hideBrokenImage = (event: Event) => {
@@ -23,17 +31,39 @@ const showLoadedImage = (event: Event) => {
 	(event.currentTarget as HTMLImageElement).hidden = false;
 };
 
+const mergeResults = (catalogResults: EntitySearchResult[], itemResults: EntitySearchResult[]) => {
+	const uniqueResults = new Map<string, EntitySearchResult>();
+	for (const result of [...catalogResults, ...itemResults]) {
+		uniqueResults.set(result.id, result);
+	}
+	return [...uniqueResults.values()];
+};
+
 export default (props: EntitySearchProps) => {
 	const [query, setQuery] = createSignal("");
 	const [results, setResults] = createSignal<EntitySearchResult[]>([]);
 	const [catalog, setCatalog] = createSignal<EntityCatalog>({ monsters: [], spells: [], runes: [] });
 	const [catalogReady, setCatalogReady] = createSignal(false);
+	const [itemSearchLoading, setItemSearchLoading] = createSignal(false);
 	const [open, setOpen] = createSignal(false);
 	const [activeIndex, setActiveIndex] = createSignal(-1);
 	let searchRoot!: HTMLDivElement;
 	let searchInput!: HTMLInputElement;
+	let itemSearchController: AbortController | undefined;
+	let itemSearchTimer: number | undefined;
+
+	const cancelItemSearch = () => {
+		if (itemSearchTimer !== undefined) {
+			window.clearTimeout(itemSearchTimer);
+			itemSearchTimer = undefined;
+		}
+		itemSearchController?.abort();
+		itemSearchController = undefined;
+		setItemSearchLoading(false);
+	};
 
 	const clearSearch = () => {
+		cancelItemSearch();
 		setQuery("");
 		setResults([]);
 		setActiveIndex(-1);
@@ -42,6 +72,7 @@ export default (props: EntitySearchProps) => {
 	};
 
 	const selectResult = (result: EntitySearchResult) => {
+		cancelItemSearch();
 		setQuery(result.title);
 		setOpen(false);
 		setActiveIndex(-1);
@@ -53,7 +84,31 @@ export default (props: EntitySearchProps) => {
 		setQuery(value);
 		setOpen(true);
 		setActiveIndex(-1);
+		cancelItemSearch();
 		setResults(searchCatalog(catalog(), value));
+
+		if (normalizeSearchText(value).length < 2) {
+			return;
+		}
+
+		setItemSearchLoading(true);
+		itemSearchTimer = window.setTimeout(() => {
+			itemSearchTimer = undefined;
+			const controller = new AbortController();
+			itemSearchController = controller;
+			void searchWikiItems(value, controller.signal)
+				.then((itemResults) => {
+					if (!controller.signal.aborted) {
+						setResults(mergeResults(searchCatalog(catalog(), value), itemResults));
+					}
+				})
+				.catch(() => undefined)
+				.finally(() => {
+					if (itemSearchController === controller) {
+						setItemSearchLoading(false);
+					}
+				});
+		}, 220);
 	};
 
 	const handleKeyDown = (event: KeyboardEvent) => {
@@ -101,11 +156,15 @@ export default (props: EntitySearchProps) => {
 			setCatalogReady(true);
 
 			if (query().trim()) {
-				setResults(searchCatalog(nextCatalog, query()));
+				const currentItemResults = results().filter((result) => result.kind === "item");
+				setResults(mergeResults(searchCatalog(nextCatalog, query()), currentItemResults));
 			}
 		});
 
-		onCleanup(() => document.removeEventListener("pointerdown", handleOutsidePointer));
+		onCleanup(() => {
+			cancelItemSearch();
+			document.removeEventListener("pointerdown", handleOutsidePointer);
+		});
 	});
 
 	return (
@@ -120,8 +179,8 @@ export default (props: EntitySearchProps) => {
 					value={query()}
 					type="search"
 					role="combobox"
-					placeholder="Pesquisar monstros, habilidades ou runas..."
-					aria-label="Pesquisar monstros, habilidades ou runas"
+					placeholder="Pesquisar monstros, itens, habilidades ou runas..."
+					aria-label="Pesquisar monstros, itens, habilidades ou runas"
 					aria-controls="entity-search-results"
 					aria-expanded={open()}
 					aria-autocomplete="list"
@@ -187,8 +246,11 @@ export default (props: EntitySearchProps) => {
 					<Show when={!catalogReady()}>
 						<div class={styles.searchStatus}>Carregando catálogo oficial...</div>
 					</Show>
-					<Show when={catalogReady() && results().length === 0}>
-						<div class={styles.searchStatus}>Nenhuma entidade encontrada no catálogo oficial.</div>
+					<Show when={itemSearchLoading()}>
+						<div class={styles.searchStatus}>Procurando itens na TibiaWiki...</div>
+					</Show>
+					<Show when={!itemSearchLoading() && catalogReady() && results().length === 0}>
+						<div class={styles.searchStatus}>Nenhuma entidade encontrada nos catálogos oficiais.</div>
 					</Show>
 				</CustomScrollbar>
 			</Show>

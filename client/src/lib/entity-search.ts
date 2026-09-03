@@ -1,12 +1,13 @@
 const TIBIA_DATA_API = "https://api.tibiadata.com/v4";
 const TIBIA_LIBRARY_IMAGES = "https://static.tibia.com/images/library";
-export type EntityKind = "monster" | "spell" | "rune";
+const TIBIA_WIKI_API = "https://www.tibiawiki.com.br/api.php";
+export type EntityKind = "monster" | "spell" | "rune" | "item";
 
 export type EntitySearchResult = {
 	id: string;
 	title: string;
 	kind: EntityKind;
-	source: "tibiadata";
+	source: "tibiadata" | "tibiawiki";
 	lookupId?: string;
 	imageUrl?: string;
 	snippet?: string;
@@ -191,6 +192,97 @@ const getMatchRank = (value: string, query: string) => {
 		return 2;
 	}
 	return 3;
+};
+
+const readWikiSearchPages = (value: unknown) => {
+	if (!isRecord(value) || !isRecord(value.query) || !Array.isArray(value.query.search)) {
+		return [];
+	}
+
+	return value.query.search.filter(
+		(page): page is Record<string, unknown> =>
+			isRecord(page) && typeof page.title === "string" && (typeof page.pageid === "number" || typeof page.pageid === "undefined"),
+	);
+};
+
+const readWikiItemPages = (value: unknown) => {
+	if (!isRecord(value) || !isRecord(value.query) || !Array.isArray(value.query.pages)) {
+		return [];
+	}
+
+	return value.query.pages.filter(
+		(page): page is Record<string, unknown> =>
+			isRecord(page) && typeof page.title === "string" && Array.isArray(page.categories),
+	);
+};
+
+const isItemPage = (page: Record<string, unknown>) =>
+	(page.categories as unknown[]).some(
+		(category) => isRecord(category) && typeof category.title === "string" && normalizeSearchText(category.title).startsWith("categoria:itens"),
+	);
+
+export const searchWikiItems = async (query: string, signal?: AbortSignal): Promise<EntitySearchResult[]> => {
+	const normalizedQuery = normalizeSearchText(query);
+	if (normalizedQuery.length < 2) {
+		return [];
+	}
+
+	const params = new URLSearchParams({
+		action: "query",
+		list: "search",
+		srnamespace: "0",
+		srsearch: query.trim(),
+		srlimit: "10",
+		srprop: "snippet",
+		format: "json",
+		formatversion: "2",
+		origin: "*",
+	});
+	const searchPayload = await fetchJson(`${TIBIA_WIKI_API}?${params.toString()}`, signal);
+	const searchPages = readWikiSearchPages(searchPayload).filter((page) => typeof page.pageid === "number");
+	if (searchPages.length === 0) {
+		return [];
+	}
+
+	const pageIDs = searchPages.map((page) => String(page.pageid)).join("|");
+	const categoryParams = new URLSearchParams({
+		action: "query",
+		pageids: pageIDs,
+		prop: "categories",
+		cllimit: "50",
+		format: "json",
+		formatversion: "2",
+		origin: "*",
+	});
+	const categoryPayload = await fetchJson(`${TIBIA_WIKI_API}?${categoryParams.toString()}`, signal);
+	const seenTitles = new Set<string>();
+
+	return readWikiItemPages(categoryPayload)
+		.filter(isItemPage)
+		.flatMap((page): EntitySearchResult[] => {
+			const title = page.title as string;
+			const normalizedTitle = normalizeSearchText(title);
+			if (seenTitles.has(normalizedTitle)) {
+				return [];
+			}
+			seenTitles.add(normalizedTitle);
+			return [
+				{
+					id: `item:${typeof page.pageid === "number" ? page.pageid : title}`,
+					title,
+					kind: "item",
+					source: "tibiawiki",
+					lookupId: title,
+					snippet: "Item da TibiaWiki",
+				},
+			];
+		})
+		.sort((left, right) => {
+			const rankDifference =
+				getMatchRank(normalizeSearchText(left.title), normalizedQuery) -
+				getMatchRank(normalizeSearchText(right.title), normalizedQuery);
+			return rankDifference || left.title.localeCompare(right.title);
+		});
 };
 
 export const searchCatalog = (catalog: EntityCatalog, query: string) => {

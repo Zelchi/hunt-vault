@@ -12,7 +12,7 @@ export type WikiPageDetails = {
 	imageUrl?: string;
 };
 
-export type WikiEntityKind = "monster" | "spell" | "rune";
+export type WikiEntityKind = "monster" | "spell" | "rune" | "item";
 
 export type CreatureSummary = {
 	resistances: Array<{
@@ -22,6 +22,18 @@ export type CreatureSummary = {
 		iconUrl?: string;
 	}>;
 	loot: string[];
+};
+
+export type ItemSummary = {
+	attributes: Array<{
+		label: string;
+		value: string;
+	}>;
+	description?: string;
+	sources: Array<{
+		label: string;
+		value: string;
+	}>;
 };
 
 export type CreatureFallbackDetails = {
@@ -86,7 +98,7 @@ const splitTopLevel = (value: string, separator: string) => {
 };
 
 const readInfobox = (wikitext: string) => {
-	const match = /\{\{\s*Infobox(?:[_ ](?:Creature|Criatura))\b/i.exec(wikitext);
+	const match = /\{\{\s*Infobox(?:[_ ](?:Creature|Criatura|Item))?\b/i.exec(wikitext);
 	if (!match) {
 		return {};
 	}
@@ -250,6 +262,100 @@ export const extractCreatureSummary = (wikitext?: string): CreatureSummary => {
 	});
 
 	return { resistances, loot };
+};
+
+const firstItemField = (fields: Record<string, string>, keys: string[]) => {
+	for (const key of keys) {
+		const value = readField(fields, key);
+		if (value) {
+			return value;
+		}
+	}
+
+	return "";
+};
+
+const readItemList = (fields: Record<string, string>, key: string) => {
+	const value = fields[key.toLocaleLowerCase()];
+	if (!value) {
+		return [];
+	}
+
+	return splitTopLevel(value, ",")
+		.map((item) => cleanWikiValue(item).replace(/[.;]+$/, "").trim())
+		.filter(Boolean);
+};
+
+const compactItemList = (items: string[], limit: number) => {
+	if (items.length <= limit) {
+		return items.join(", ");
+	}
+
+	return `${items.slice(0, limit).join(", ")} + ${items.length - limit} outros`;
+};
+
+const shortenItemText = (value: string, limit = 240) => (value.length > limit ? `${value.slice(0, limit).trimEnd()}…` : value);
+
+export const extractItemSummary = (wikitext?: string): ItemSummary | undefined => {
+	if (!wikitext) {
+		return undefined;
+	}
+
+	const fields = readInfobox(wikitext);
+	const itemAttributeDefinitions: ReadonlyArray<readonly [string, string[]]> = [
+		["Categoria", ["itemclass"]],
+		["Tipo", ["primarytype"]],
+		["Peso", ["weight"]],
+		["Vocação", ["vocrequired"]],
+		["Level mínimo", ["levelrequired"]],
+		["Armadura", ["armor"]],
+		["Ataque", ["attack"]],
+		["Defesa", ["defense", "defence"]],
+		["Bônus", ["skillboost"]],
+		["Stackável", ["stackable"]],
+		["Valor", ["npcvalue", "npcprice", "value"]],
+		["Imbuement", ["imbuement"]],
+		["Classificação", ["classificacao", "classification"]],
+		["Max tier", ["max_tier", "maxtier"]],
+	];
+	const attributes = itemAttributeDefinitions
+		.map(([label, keys]) => {
+			const rawValue = firstItemField(fields, keys);
+			if (!rawValue) {
+				return undefined;
+			}
+
+			const value = label === "Peso" && !/\boz\b/i.test(rawValue) ? `${rawValue} oz` : rawValue;
+			return {
+				label,
+				value: label === "Stackável" ? (normalizeCreatureElement(value) === "sim" ? "Sim" : "Não") : value,
+			};
+		})
+		.filter((attribute): attribute is ItemSummary["attributes"][number] => Boolean(attribute));
+
+	const description = shortenItemText(firstItemField(fields, ["attrib", "notes"]));
+	const sourceDefinitions: ReadonlyArray<readonly [string, string, number]> = [
+		["Drop", "droppedby", 6],
+		["Raid", "droppedRaidby", 4],
+		["Compra", "buyfrom", 4],
+		["Venda", "sellto", 4],
+	];
+	const sources = sourceDefinitions
+		.map(([label, key, limit]) => {
+			const value = compactItemList(readItemList(fields, key), limit);
+			return value ? { label, value } : undefined;
+		})
+		.filter((source): source is ItemSummary["sources"][number] => Boolean(source));
+
+	if (attributes.length === 0 && !description && sources.length === 0) {
+		return undefined;
+	}
+
+	return {
+		attributes,
+		description: description || undefined,
+		sources,
+	};
 };
 
 const readCreatureList = (creature: Record<string, unknown>, key: string) => {
@@ -445,7 +551,7 @@ const resolveWikiPage = async (title: string, kind: WikiEntityKind, signal?: Abo
 	throw new Error("Página não encontrada.");
 };
 
-const extractRuneImageUrl = (html: string) => {
+const extractInfoboxImageUrl = (html: string) => {
 	const document = new DOMParser().parseFromString(html, "text/html");
 	const source = document.querySelector("table.infobox img")?.getAttribute("src");
 	if (!source) {
@@ -495,7 +601,7 @@ export const fetchWikiDetails = async (
 		html,
 		wikitext,
 		sourceUrl: getWikiUrl(resolvedTitle),
-		imageUrl: kind === "rune" ? extractRuneImageUrl(html) : undefined,
+		imageUrl: kind === "rune" || kind === "item" ? extractInfoboxImageUrl(html) : undefined,
 	};
 };
 

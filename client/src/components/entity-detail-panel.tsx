@@ -4,7 +4,9 @@ import CustomScrollbar from "@/components/custom-scrollbar";
 import {
 	type CreatureFallbackDetails,
 	type CreatureSummary,
+	type ItemSummary,
 	extractCreatureSummary,
+	extractItemSummary,
 	fetchCreatureFallback,
 	fetchWikiDetails,
 	sanitizeWikiHtml,
@@ -22,6 +24,7 @@ const entityKindLabel: Record<EntitySearchResult["kind"], string> = {
 	monster: "Monstro",
 	spell: "Habilidade",
 	rune: "Runa",
+	item: "Item",
 };
 
 const resistanceKindLabel: Record<CreatureSummary["resistances"][number]["kind"], string> = {
@@ -93,9 +96,59 @@ const CreatureSummaryView = (props: { summary: CreatureSummary }) => (
 	</div>
 );
 
+const ItemSummaryView = (props: { summary?: ItemSummary; sourceUrl?: string }) => (
+	<div class={styles.itemSummary}>
+		<Show when={props.summary} fallback={<p class={styles.summaryEmpty}>Nenhum resumo do item foi informado.</p>}>
+			{(summary) => (
+				<>
+					<Show when={summary().attributes.length > 0}>
+						<section class={styles.summarySection}>
+							<h3 class={styles.summaryTitle}>Informações</h3>
+							<div class={styles.itemStats}>
+								<For each={summary().attributes}>
+									{(attribute) => (
+										<div class={styles.itemStat}>
+											<span class={styles.itemStatLabel}>{attribute.label}</span>
+											<strong class={styles.itemStatValue}>{attribute.value}</strong>
+										</div>
+									)}
+								</For>
+							</div>
+						</section>
+					</Show>
+
+					<Show when={summary().description}>
+						<section class={styles.summarySection}>
+							<h3 class={styles.summaryTitle}>Descrição</h3>
+							<p class={styles.itemDescription}>{summary().description}</p>
+						</section>
+					</Show>
+
+					<Show when={summary().sources.length > 0}>
+						<section class={styles.summarySection}>
+							<h3 class={styles.summaryTitle}>Onde encontrar</h3>
+							<div class={styles.itemSourceList}>
+								<For each={summary().sources}>
+									{(source) => (
+										<div class={styles.itemSource}>
+											<span class={styles.itemSourceLabel}>{source.label}</span>
+											<span class={styles.itemSourceValue}>{source.value}</span>
+										</div>
+									)}
+								</For>
+							</div>
+						</section>
+					</Show>
+				</>
+			)}
+		</Show>
+	</div>
+);
+
 export default (props: EntityDetailPanelProps) => {
 	const [page, setPage] = createSignal<WikiPageDetails>();
 	const [creatureSummary, setCreatureSummary] = createSignal<CreatureSummary>();
+	const [itemSummary, setItemSummary] = createSignal<ItemSummary>();
 	const [creatureFallback, setCreatureFallback] = createSignal<CreatureFallbackDetails>();
 	const [, setUsingFallback] = createSignal(false);
 	const [loading, setLoading] = createSignal(true);
@@ -110,6 +163,7 @@ export default (props: EntityDetailPanelProps) => {
 		activeController = controller;
 		setPage(undefined);
 		setCreatureSummary(undefined);
+		setItemSummary(undefined);
 		setCreatureFallback(undefined);
 		setUsingFallback(false);
 		setError("");
@@ -143,6 +197,8 @@ export default (props: EntityDetailPanelProps) => {
 					if (hasSummary) {
 						setCreatureSummary(nextSummary);
 					}
+				} else if (props.entity.kind === "item") {
+					setItemSummary(extractItemSummary(nextPage.wikitext));
 				}
 			} catch (detailError) {
 				if (controller.signal.aborted || (detailError instanceof DOMException && detailError.name === "AbortError")) {
@@ -215,7 +271,10 @@ export default (props: EntityDetailPanelProps) => {
 							{(summary) => <CreatureSummaryView summary={summary()} />}
 						</Show>
 					</Show>
-					<Show when={props.entity.kind !== "monster" && !loading() && !error() && page()}>
+					<Show when={props.entity.kind === "item" && !loading() && !error() && page()}>
+						<ItemSummaryView summary={itemSummary()} sourceUrl={page()?.sourceUrl} />
+					</Show>
+					<Show when={props.entity.kind !== "monster" && props.entity.kind !== "item" && !loading() && !error() && page()}>
 						<div class={styles.wikiContent} innerHTML={page()?.html ?? ""} />
 					</Show>
 				</CustomScrollbar>

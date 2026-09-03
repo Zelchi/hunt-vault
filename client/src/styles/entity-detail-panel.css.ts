@@ -134,6 +134,104 @@ export const creatureSummary = style({
 	userSelect: "text",
 });
 
+export const itemSummary = style({
+	display: "flex",
+	flexDirection: "column",
+	gap: "0.75rem",
+	color: "#d7d4cc",
+	fontFamily: '"Courier New", ui-monospace, SFMono-Regular, Consolas, monospace',
+	fontSize: "0.78rem",
+	lineHeight: 1.5,
+	userSelect: "text",
+});
+
+export const itemStats = style({
+	display: "grid",
+	gridTemplateColumns: "repeat(auto-fit, minmax(8.5rem, 1fr))",
+	gap: "0.55rem",
+});
+
+export const itemStat = style({
+	display: "flex",
+	minWidth: 0,
+	flexDirection: "column",
+	gap: "0.15rem",
+	padding: "0.55rem 0.6rem",
+	border: "1px solid #2b4638",
+	background: "#0d1310",
+});
+
+export const itemStatLabel = style({
+	color: "#a9c38a",
+	fontSize: "0.64rem",
+	letterSpacing: "0.04em",
+	textTransform: "uppercase",
+});
+
+export const itemStatValue = style({
+	color: "#f4f1ea",
+	fontSize: "0.78rem",
+	fontWeight: 700,
+	overflowWrap: "anywhere",
+});
+
+export const itemDescription = style({
+	margin: 0,
+	color: "#d7d4cc",
+	lineHeight: 1.65,
+});
+
+export const itemSourceList = style({
+	display: "flex",
+	flexDirection: "column",
+	gap: "0.5rem",
+});
+
+export const itemSource = style({
+	display: "flex",
+	minWidth: 0,
+	flexDirection: "column",
+	gap: "0.15rem",
+	paddingBottom: "0.45rem",
+	borderBottom: "1px solid #1f3428",
+	selectors: {
+		"&:last-child": {
+			paddingBottom: 0,
+			borderBottom: "none",
+		},
+	},
+});
+
+export const itemSourceLabel = style({
+	color: "#a9c38a",
+	fontSize: "0.64rem",
+	fontWeight: 700,
+	letterSpacing: "0.04em",
+	textTransform: "uppercase",
+});
+
+export const itemSourceValue = style({
+	color: "#d7d4cc",
+	overflowWrap: "anywhere",
+});
+
+export const itemSourceLink = style({
+	alignSelf: "flex-start",
+	padding: "0.45rem 0.65rem",
+	border: "1px solid #2b4638",
+	background: "#0d1310",
+	color: "#a9c38a",
+	fontSize: "0.68rem",
+	letterSpacing: "0.03em",
+	textDecoration: "none",
+	selectors: {
+		"&:hover": {
+			borderColor: "#557d5f",
+			color: "#d9a441",
+		},
+	},
+});
+
 export const summarySection = style({
 	padding: "0.85rem",
 	border: "1px solid #2b4638",
