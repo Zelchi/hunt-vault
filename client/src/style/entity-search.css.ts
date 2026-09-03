@@ -103,28 +103,22 @@ export const clearButton = style({
 
 export const filterBar = style({
 	display: "flex",
+	flexWrap: "wrap",
+	alignItems: "center",
 	width: "100%",
-	gap: "0.35rem",
+	columnGap: "0.35rem",
+	rowGap: "0.35rem",
 	justifyContent: "center",
 	padding: "0.45rem 0.75rem",
-	overflowX: "auto",
+	overflow: "hidden",
 	borderBottom: "1px solid #1a2b22",
 	background: "#101512",
-	scrollbarWidth: "none",
-	selectors: {
-		"&::-webkit-scrollbar": {
-			display: "none",
-		},
-	},
-	"@media": {
-		"screen and (max-width: 640px)": {
-			justifyContent: "flex-start",
-		},
-	},
 });
 
 export const filterButton = style({
-	flex: "0 0 auto",
+	flex: "1 1 5rem",
+	minWidth: "5rem",
+	maxWidth: "8rem",
 	padding: "0.35rem 0.55rem",
 	border: "1px solid #2b4638",
 	borderRadius: 0,
@@ -136,6 +130,13 @@ export const filterButton = style({
 	textTransform: "uppercase",
 	whiteSpace: "nowrap",
 	transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
+	"@media": {
+		"screen and (max-width: 400px)": {
+			minWidth: "4.5rem",
+			paddingInline: "0.4rem",
+			fontSize: "0.55rem",
+		},
+	},
 	selectors: {
 		"&:hover": {
 			borderColor: "#526d5b",
@@ -269,6 +270,13 @@ export const resultTopline = style({
 	minWidth: 0,
 });
 
+export const resultBadges = style({
+	display: "flex",
+	alignItems: "center",
+	flex: "0 0 auto",
+	gap: "0.35rem",
+});
+
 export const resultTitle = style({
 	overflow: "hidden",
 	color: "#f4f1ea",
@@ -286,6 +294,16 @@ export const resultKind = style({
 	fontWeight: 700,
 	letterSpacing: "0.06em",
 	textTransform: "uppercase",
+});
+
+export const resultCode = style({
+	flex: "0 0 auto",
+	padding: "0.18rem 0.3rem",
+	border: "1px solid #d9a441",
+	color: "#d9a441",
+	fontSize: "0.57rem",
+	fontWeight: 700,
+	letterSpacing: "0.06em",
 });
 
 export const searchStatus = style({

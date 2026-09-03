@@ -1,6 +1,17 @@
 import Fuse from "fuse.js";
 
 import {
+	TIBIAWATCH_API,
+	TIBIAWATCH_ORIGIN,
+	TIBIAWATCH_RESPAWNS_PATH,
+	TIBIAWATCH_SEARCH_CACHE_KEY,
+	TIBIAWATCH_SEARCH_CACHE_MAX_AGE,
+	TIBIAWATCH_SEARCH_PAGE_SIZE,
+	TIBIAWATCH_SEARCH_PATH,
+	TIBIAWATCH_SERVER,
+	TIBIAWATCH_WORLD,
+} from "@/const/tibiawatch";
+import {
 	IMBUEMENT_LEVEL_3_IMAGES,
 	TIBIA_WIKI_API,
 	TIBIA_WIKI_ORIGIN,
@@ -12,17 +23,56 @@ import {
 	WIKI_SEARCH_CACHE_MAX_AGE,
 } from "@/const/wiki";
 
-export type EntityKind = "monster" | "spell" | "rune" | "item" | "imbuement";
+export type WikiEntityKind = "monster" | "spell" | "rune" | "item" | "imbuement";
+export type EntityKind = WikiEntityKind | "hunt";
 
-export type EntitySearchResult = {
+type EntitySearchResultBase = {
 	id: string;
 	title: string;
-	kind: EntityKind;
-	source: "tibiawiki";
 	isBoss?: boolean;
 	lookupId?: string;
 	imageUrl?: string;
 	snippet?: string;
+};
+
+export type WikiEntitySearchResult = EntitySearchResultBase & {
+	kind: WikiEntityKind;
+	source: "tibiawiki";
+	externalUrl?: never;
+};
+
+export type HuntSearchResult = EntitySearchResultBase & {
+	kind: "hunt";
+	source: "tibiawatch";
+	externalUrl: string;
+	huntCode?: string;
+};
+
+export type EntitySearchResult = WikiEntitySearchResult | HuntSearchResult;
+
+export type TibiaWatchRespawnDetails = {
+	id: string;
+	name: string;
+	description?: string;
+	premium?: boolean;
+	alias?: string;
+	status?: string;
+	minLevel?: number;
+	maxLevel?: number;
+	difficulty?: string;
+	vocations?: string;
+	avgExpPerHour?: string;
+	avgLootPerHour?: string;
+	city?: string;
+	tags?: string;
+	imageUrl?: string;
+	videoUrl?: string;
+	expPerHour?: number;
+	profitPerHour?: number;
+	imbuements?: string;
+	supplies?: string;
+	trinket?: string;
+	questRequirements?: string;
 };
 
 export type EntityCatalog = {
@@ -35,7 +85,7 @@ export type EntityCatalog = {
 type CatalogEntity = {
 	id: string;
 	name: string;
-	kind: EntityKind;
+	kind: WikiEntityKind;
 	lookupId?: string;
 	imageUrl?: string;
 };
@@ -51,6 +101,7 @@ let catalogSearchIndex: { catalog: EntityCatalog; fuse: Fuse<CatalogSearchEntry>
 const wikiCategoryCache = new Map<string, { fetchedAt: number; pages: Record<string, unknown>[] }>();
 type SearchCacheEntry = { savedAt: number; results: EntitySearchResult[] };
 let wikiSearchCache: Record<string, SearchCacheEntry> | undefined;
+let tibiaWatchSearchCache: Record<string, SearchCacheEntry> | undefined;
 
 const getWikiImageUrl = (title: string) => {
 	const fileTitle = title.trim().replace(/\s+/g, "_");
@@ -91,7 +142,7 @@ const isRuneTitle = (title: string) => {
 };
 
 const isEntityKind = (value: unknown): value is EntityKind => {
-	return value === "monster" || value === "spell" || value === "rune" || value === "item" || value === "imbuement";
+	return value === "monster" || value === "spell" || value === "rune" || value === "item" || value === "imbuement" || value === "hunt";
 };
 
 const isCachedSearchResult = (value: unknown): value is EntitySearchResult => {
@@ -100,7 +151,20 @@ const isCachedSearchResult = (value: unknown): value is EntitySearchResult => {
 		typeof value.id === "string" &&
 		typeof value.title === "string" &&
 		isEntityKind(value.kind) &&
-		value.source === "tibiawiki"
+		value.source === "tibiawiki" &&
+		value.kind !== "hunt"
+	);
+};
+
+const isCachedTibiaWatchHunt = (value: unknown): value is HuntSearchResult => {
+	return (
+		isRecord(value) &&
+		typeof value.id === "string" &&
+		typeof value.title === "string" &&
+		value.kind === "hunt" &&
+		value.source === "tibiawatch" &&
+		typeof value.externalUrl === "string" &&
+		(typeof value.huntCode === "undefined" || typeof value.huntCode === "string")
 	);
 };
 
@@ -115,21 +179,34 @@ const getWikiPageId = (result: EntitySearchResult) => {
 };
 
 const normalizeSearchResult = (result: EntitySearchResult): EntitySearchResult => {
-	const isMisclassifiedRune = result.kind === "rune" && !isRuneTitle(result.title);
-	const kind = isMisclassifiedRune ? "item" : result.kind;
+	const isMisclassifiedRune = result.source === "tibiawiki" && result.kind === "rune" && !isRuneTitle(result.title);
 	const pageId = getWikiPageId(result);
-	const imageUrl = kind === "imbuement" ? getImbuementImageUrl(result.title) : getWikiImageUrl(result.title);
+	if (isMisclassifiedRune) {
+		return {
+			...result,
+			id: pageId ? `item:${pageId}` : result.id,
+			kind: "item",
+			imageUrl: getWikiImageUrl(result.title),
+			snippet: "Item",
+		};
+	}
 
 	return {
 		...result,
-		id: isMisclassifiedRune && pageId ? `item:${pageId}` : result.id,
-		kind,
-		imageUrl,
-		snippet: isMisclassifiedRune ? "Item" : result.snippet,
+		imageUrl:
+			result.source === "tibiawatch"
+				? result.imageUrl
+				: result.kind === "imbuement"
+					? getImbuementImageUrl(result.title)
+					: getWikiImageUrl(result.title),
 	};
 };
 
 const getSearchResultKey = (result: EntitySearchResult) => {
+	if (result.source === "tibiawatch") {
+		return `tibiawatch:${result.id}`;
+	}
+
 	const pageId = getWikiPageId(result);
 	return pageId ? `wiki:${pageId}` : `${result.kind}:${normalizeSearchText(result.title)}`;
 };
@@ -150,6 +227,9 @@ const getSearchResultPriority = (result: EntitySearchResult) => {
 	if (result.kind === "monster") {
 		return 4;
 	}
+	if (result.kind === "hunt") {
+		return 5;
+	}
 	return 5;
 };
 
@@ -161,7 +241,7 @@ export const mergeSearchResults = (currentResults: EntitySearchResult[], nextRes
 		const existingResult = uniqueResults.get(key);
 		if (!existingResult || getSearchResultPriority(result) < getSearchResultPriority(existingResult)) {
 			uniqueResults.set(key, result);
-		} else if (result.isBoss && !existingResult.isBoss) {
+		} else if (result.source === "tibiawiki" && result.isBoss && existingResult.source === "tibiawiki" && !existingResult.isBoss) {
 			uniqueResults.set(key, { ...existingResult, isBoss: true, snippet: "Boss" });
 		}
 	}
@@ -211,6 +291,48 @@ const writeWikiSearchCache = () => {
 	localStorage.setItem(WIKI_SEARCH_CACHE_KEY, JSON.stringify(readWikiSearchCache()));
 };
 
+const readTibiaWatchSearchCache = () => {
+	if (tibiaWatchSearchCache) {
+		return tibiaWatchSearchCache;
+	}
+
+	tibiaWatchSearchCache = {};
+	try {
+		const rawValue = localStorage.getItem(TIBIAWATCH_SEARCH_CACHE_KEY);
+		if (!rawValue) {
+			return tibiaWatchSearchCache;
+		}
+
+		const parsed: unknown = JSON.parse(rawValue);
+		if (!isRecord(parsed)) {
+			return tibiaWatchSearchCache;
+		}
+
+		const now = Date.now();
+		for (const [query, entry] of Object.entries(parsed)) {
+			if (!isRecord(entry) || typeof entry.savedAt !== "number" || !Array.isArray(entry.results)) {
+				continue;
+			}
+			if (now - entry.savedAt >= TIBIAWATCH_SEARCH_CACHE_MAX_AGE) {
+				continue;
+			}
+
+			const results = entry.results.filter(isCachedTibiaWatchHunt);
+			if (results.length > 0) {
+				tibiaWatchSearchCache[query] = { savedAt: entry.savedAt, results };
+			}
+		}
+	} catch {
+		tibiaWatchSearchCache = {};
+	}
+
+	return tibiaWatchSearchCache;
+};
+
+const writeTibiaWatchSearchCache = () => {
+	localStorage.setItem(TIBIAWATCH_SEARCH_CACHE_KEY, JSON.stringify(readTibiaWatchSearchCache()));
+};
+
 const rankCachedResults = (query: string, results: EntitySearchResult[]) => {
 	const normalizedQuery = normalizeSearchText(query);
 	if (normalizedQuery.length < 2 || results.length === 0) {
@@ -254,6 +376,21 @@ export const getCachedSearchResults = (query: string) => {
 	return rankCachedResults(query, mergeSearchResults(cache[normalizedQuery]?.results ?? [], allResults));
 };
 
+export const getCachedTibiaWatchHunts = (query: string) => {
+	const cache = readTibiaWatchSearchCache();
+	const normalizedQuery = normalizeSearchText(query);
+	if (normalizedQuery.length < 2) {
+		return [];
+	}
+
+	const allResults = Object.values(cache).flatMap((entry) => {
+		return entry.results;
+	});
+	return rankCachedResults(query, mergeSearchResults(cache[normalizedQuery]?.results ?? [], allResults)).filter((result) => {
+		return result.kind === "hunt";
+	});
+};
+
 export const cacheSearchResults = (query: string, results: EntitySearchResult[]) => {
 	const normalizedQuery = normalizeSearchText(query);
 	if (normalizedQuery.length < 2 || results.length === 0) {
@@ -268,7 +405,23 @@ export const cacheSearchResults = (query: string, results: EntitySearchResult[])
 	writeWikiSearchCache();
 };
 
-const readCachedEntities = (value: unknown, expectedKind: EntityKind): CatalogEntity[] => {
+export const cacheTibiaWatchHunts = (query: string, results: HuntSearchResult[]) => {
+	const normalizedQuery = normalizeSearchText(query);
+	if (normalizedQuery.length < 2 || results.length === 0) {
+		return;
+	}
+
+	const cache = readTibiaWatchSearchCache();
+	cache[normalizedQuery] = {
+		savedAt: Date.now(),
+		results: mergeSearchResults(cache[normalizedQuery]?.results ?? [], results).filter((result): result is HuntSearchResult => {
+			return result.kind === "hunt";
+		}),
+	};
+	writeTibiaWatchSearchCache();
+};
+
+const readCachedEntities = (value: unknown, expectedKind: WikiEntityKind): CatalogEntity[] => {
 	if (!Array.isArray(value)) {
 		return [];
 	}
@@ -433,7 +586,7 @@ const loadWikiCategoryMembers = async (categoryTitle: string, signal?: AbortSign
 	return pages;
 };
 
-const createCatalogEntities = (pages: Record<string, unknown>[], kind: EntityKind): CatalogEntity[] => {
+const createCatalogEntities = (pages: Record<string, unknown>[], kind: WikiEntityKind): CatalogEntity[] => {
 	const seenTitles = new Set<string>();
 
 	return pages.flatMap((page): CatalogEntity[] => {
@@ -883,6 +1036,172 @@ export const searchWikiImbuements = async (query: string, signal?: AbortSignal):
 			snippet: "Imbuement",
 		};
 	});
+};
+
+const readTibiaWatchString = (record: Record<string, unknown>, key: string) => {
+	const value = record[key];
+	return typeof value === "string" && value.trim() ? value.trim() : undefined;
+};
+
+const readTibiaWatchNumber = (record: Record<string, unknown>, key: string) => {
+	const value = record[key];
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return value;
+	}
+	if (typeof value !== "string" || value.trim() === "") {
+		return undefined;
+	}
+
+	const parsedValue = Number(value);
+	return Number.isFinite(parsedValue) ? parsedValue : undefined;
+};
+
+const readTibiaWatchUrl = (value: string | undefined) => {
+	if (!value) {
+		return undefined;
+	}
+
+	try {
+		const url = new URL(value);
+		return url.protocol === "http:" || url.protocol === "https:" ? url.href : undefined;
+	} catch {
+		return undefined;
+	}
+};
+
+const readTibiaWatchRespawns = (value: unknown): HuntSearchResult[] => {
+	if (!isRecord(value) || !Array.isArray(value.respawns)) {
+		return [];
+	}
+
+	return value.respawns.flatMap((rawRespawn): HuntSearchResult[] => {
+		if (!isRecord(rawRespawn)) {
+			return [];
+		}
+
+		const id = readTibiaWatchString(rawRespawn, "id");
+		const title = readTibiaWatchString(rawRespawn, "name");
+		if (!id || !title) {
+			return [];
+		}
+
+		const city = readTibiaWatchString(rawRespawn, "city");
+		const alias = readTibiaWatchString(rawRespawn, "alias");
+		const tags = readTibiaWatchString(rawRespawn, "tags");
+		const difficulty = readTibiaWatchString(rawRespawn, "difficulty");
+		const minLevel = readTibiaWatchNumber(rawRespawn, "min_level");
+		const imageUrl = readTibiaWatchUrl(readTibiaWatchString(rawRespawn, "image_url"));
+		const snippet = [
+			city,
+			tags,
+			difficulty,
+			alias ? `Respawn ${alias}` : undefined,
+			typeof minLevel === "number" && minLevel > 0 ? `Level ${minLevel}+` : undefined,
+		]
+			.filter(Boolean)
+			.join(" · ");
+
+		return [
+			{
+				id,
+				title,
+				kind: "hunt",
+				source: "tibiawatch",
+				lookupId: id,
+				externalUrl: `${TIBIAWATCH_ORIGIN}/respawns/${encodeURIComponent(id)}`,
+				huntCode: alias,
+				imageUrl,
+				snippet: snippet || "Hunt",
+			},
+		];
+	});
+};
+
+const readTibiaWatchFirstVideoUrl = (value: unknown, fallbackValue?: string) => {
+	if (Array.isArray(value)) {
+		for (const rawVideo of value) {
+			const videoValue = isRecord(rawVideo)
+				? readTibiaWatchString(rawVideo, "url")
+				: typeof rawVideo === "string"
+					? rawVideo
+					: undefined;
+			const videoUrl = readTibiaWatchUrl(videoValue);
+			if (videoUrl) {
+				return videoUrl;
+			}
+		}
+	}
+
+	return readTibiaWatchUrl(fallbackValue);
+};
+
+const readTibiaWatchRespawnDetails = (value: unknown): TibiaWatchRespawnDetails => {
+	if (!isRecord(value)) {
+		throw new Error("Invalid TibiaWatch respawn response");
+	}
+
+	const id = readTibiaWatchString(value, "id");
+	const name = readTibiaWatchString(value, "name");
+	if (!id || !name) {
+		throw new Error("Invalid TibiaWatch respawn details");
+	}
+
+	return {
+		id,
+		name,
+		description: readTibiaWatchString(value, "description"),
+		premium: typeof value.premium === "boolean" ? value.premium : undefined,
+		alias: readTibiaWatchString(value, "alias"),
+		status: readTibiaWatchString(value, "status"),
+		minLevel: readTibiaWatchNumber(value, "min_level"),
+		maxLevel: readTibiaWatchNumber(value, "max_level"),
+		difficulty: readTibiaWatchString(value, "difficulty"),
+		vocations: readTibiaWatchString(value, "vocations"),
+		avgExpPerHour: readTibiaWatchString(value, "avg_exp_per_hour"),
+		avgLootPerHour: readTibiaWatchString(value, "avg_loot_per_hour"),
+		city: readTibiaWatchString(value, "city"),
+		tags: readTibiaWatchString(value, "tags"),
+		imageUrl: readTibiaWatchUrl(readTibiaWatchString(value, "image_url")),
+		videoUrl: readTibiaWatchFirstVideoUrl(value.videos, readTibiaWatchString(value, "video_url")),
+		expPerHour: readTibiaWatchNumber(value, "exp_per_hour"),
+		profitPerHour: readTibiaWatchNumber(value, "profit_per_hour"),
+		imbuements: readTibiaWatchString(value, "imbuements"),
+		supplies: readTibiaWatchString(value, "supplies"),
+		trinket: readTibiaWatchString(value, "trinket"),
+		questRequirements: readTibiaWatchString(value, "quest_requirements"),
+	};
+};
+
+export const searchTibiaWatchHunts = async (query: string, signal?: AbortSignal): Promise<HuntSearchResult[]> => {
+	const normalizedQuery = normalizeSearchText(query);
+	if (normalizedQuery.length < 2) {
+		return [];
+	}
+
+	const params = new URLSearchParams({
+		q: query.trim(),
+		page_size: String(TIBIAWATCH_SEARCH_PAGE_SIZE),
+		server: TIBIAWATCH_SERVER,
+		world: TIBIAWATCH_WORLD,
+	});
+	const payload = await fetchJson(`${TIBIAWATCH_API}${TIBIAWATCH_SEARCH_PATH}?${params.toString()}`, signal);
+
+	return readTibiaWatchRespawns(payload).sort((left, right) => {
+		const rankDifference =
+			getMatchRank(normalizeSearchText(left.title), normalizedQuery) -
+			getMatchRank(normalizeSearchText(right.title), normalizedQuery);
+		return rankDifference || left.title.localeCompare(right.title);
+	});
+};
+
+export const fetchTibiaWatchHuntDetails = async (id: string, signal?: AbortSignal): Promise<TibiaWatchRespawnDetails> => {
+	const normalizedId = id.trim();
+	if (!normalizedId) {
+		throw new Error("A hunt id is required");
+	}
+
+	const payload = await fetchJson(`${TIBIAWATCH_API}${TIBIAWATCH_RESPAWNS_PATH}/${encodeURIComponent(normalizedId)}`, signal);
+	return readTibiaWatchRespawnDetails(payload);
 };
 
 export const searchCatalog = (catalog: EntityCatalog, query: string) => {

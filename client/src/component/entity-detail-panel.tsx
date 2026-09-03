@@ -13,7 +13,7 @@ import {
 	sanitizeWikiHtml,
 	type WikiPageDetails,
 } from "@/lib/entity-details";
-import type { EntitySearchResult } from "@/lib/entity-search";
+import { type EntitySearchResult, fetchTibiaWatchHuntDetails, type TibiaWatchRespawnDetails } from "@/lib/entity-search";
 import * as styles from "@/style/entity-detail-panel.css";
 
 type EntityDetailPanelProps = {
@@ -256,20 +256,255 @@ const ImbuementSummaryView = (props: { summary?: ImbuementSummary; sourceUrl?: s
 	);
 };
 
+type HuntDetailField = {
+	label: string;
+	value: string;
+};
+
+const HUNT_DIFFICULTY_LABEL: Record<string, string> = {
+	easy: "Fácil",
+	medium: "Média",
+	hard: "Difícil",
+};
+
+const formatHuntLevel = (minLevel?: number, maxLevel?: number) => {
+	const hasMinLevel = typeof minLevel === "number" && minLevel > 0;
+	const hasMaxLevel = typeof maxLevel === "number" && maxLevel > 0;
+	if (hasMinLevel && hasMaxLevel) {
+		return `${minLevel}–${maxLevel}`;
+	}
+	if (hasMinLevel) {
+		return `${minLevel}+`;
+	}
+	if (hasMaxLevel) {
+		return `Até ${maxLevel}`;
+	}
+	return undefined;
+};
+
+const formatHuntRate = (textValue?: string, numericValue?: number) => {
+	if (textValue?.trim()) {
+		return textValue.trim();
+	}
+	if (typeof numericValue === "number" && numericValue > 0) {
+		return new Intl.NumberFormat("pt-BR").format(numericValue);
+	}
+	return undefined;
+};
+
+const getHuntDifficultyLabel = (difficulty?: string) => {
+	if (!difficulty?.trim()) {
+		return undefined;
+	}
+
+	const normalizedDifficulty = difficulty.trim().toLocaleLowerCase();
+	return HUNT_DIFFICULTY_LABEL[normalizedDifficulty] ?? difficulty.trim();
+};
+
+const getHuntInformation = (details: TibiaWatchRespawnDetails): HuntDetailField[] => {
+	const fields: Array<HuntDetailField | undefined> = [
+		details.alias ? { label: "Código", value: details.alias } : undefined,
+		details.city ? { label: "Cidade", value: details.city } : undefined,
+		formatHuntLevel(details.minLevel, details.maxLevel)
+			? { label: "Nível", value: formatHuntLevel(details.minLevel, details.maxLevel) ?? "" }
+			: undefined,
+		getHuntDifficultyLabel(details.difficulty)
+			? { label: "Dificuldade", value: getHuntDifficultyLabel(details.difficulty) ?? "" }
+			: undefined,
+		details.vocations ? { label: "Vocações", value: details.vocations } : undefined,
+		typeof details.premium === "boolean" ? { label: "Acesso", value: details.premium ? "Premium" : "Livre" } : undefined,
+		details.status ? { label: "Status", value: details.status } : undefined,
+	];
+
+	return fields.filter((field): field is HuntDetailField => {
+		return Boolean(field);
+	});
+};
+
+const getHuntPerformance = (details: TibiaWatchRespawnDetails): HuntDetailField[] => {
+	const expPerHour = formatHuntRate(details.avgExpPerHour, details.expPerHour);
+	const lootPerHour = formatHuntRate(details.avgLootPerHour, details.profitPerHour);
+	const fields: Array<HuntDetailField | undefined> = [
+		expPerHour ? { label: "XP por hora", value: expPerHour } : undefined,
+		lootPerHour ? { label: "Loot por hora", value: lootPerHour } : undefined,
+	];
+
+	return fields.filter((field): field is HuntDetailField => {
+		return Boolean(field);
+	});
+};
+
+const getHuntPreparation = (details: TibiaWatchRespawnDetails): HuntDetailField[] => {
+	const fields: Array<HuntDetailField | undefined> = [
+		details.imbuements ? { label: "Imbuements", value: details.imbuements } : undefined,
+		details.supplies ? { label: "Suprimentos", value: details.supplies } : undefined,
+		details.trinket ? { label: "Trinket", value: details.trinket } : undefined,
+		details.questRequirements ? { label: "Requisitos de quest", value: details.questRequirements } : undefined,
+	];
+
+	return fields.filter((field): field is HuntDetailField => {
+		return Boolean(field);
+	});
+};
+
+const getYouTubeEmbedUrl = (videoUrl?: string) => {
+	if (!videoUrl) {
+		return undefined;
+	}
+
+	try {
+		const url = new URL(videoUrl);
+		const hostname = url.hostname.toLocaleLowerCase();
+		let videoId = "";
+
+		if (hostname === "youtu.be") {
+			videoId = url.pathname.split("/").filter(Boolean)[0] ?? "";
+		} else if (hostname === "youtube.com" || hostname.endsWith(".youtube.com")) {
+			if (url.pathname === "/watch") {
+				videoId = url.searchParams.get("v") ?? "";
+			} else {
+				const pathParts = url.pathname.split("/").filter(Boolean);
+				if (["embed", "live", "shorts"].includes(pathParts[0] ?? "")) {
+					videoId = pathParts[1] ?? "";
+				}
+			}
+		}
+
+		if (!videoId) {
+			return undefined;
+		}
+
+		return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?rel=0`;
+	} catch {
+		return undefined;
+	}
+};
+
+const HuntSummaryView = (props: { details: TibiaWatchRespawnDetails }) => {
+	const details = props.details;
+	const information = getHuntInformation(details);
+	const performance = getHuntPerformance(details);
+	const preparation = getHuntPreparation(details);
+	const videoEmbedUrl = getYouTubeEmbedUrl(details.videoUrl);
+
+	return (
+		<div class={styles.itemSummary}>
+			<Show when={information.length > 0}>
+				<section class={styles.summarySection}>
+					<h3 class={styles.summaryTitle}>Informações</h3>
+					<div class={styles.itemStats}>
+						<For each={information}>
+							{(field) => {
+								return (
+									<div class={styles.itemStat}>
+										<span class={styles.itemStatLabel}>{field.label}</span>
+										<strong class={styles.itemStatValue}>{field.value}</strong>
+									</div>
+								);
+							}}
+						</For>
+					</div>
+				</section>
+			</Show>
+
+			<Show when={performance.length > 0}>
+				<section class={styles.summarySection}>
+					<h3 class={styles.summaryTitle}>Rendimento</h3>
+					<div class={styles.itemStats}>
+						<For each={performance}>
+							{(field) => {
+								return (
+									<div class={styles.itemStat}>
+										<span class={styles.itemStatLabel}>{field.label}</span>
+										<strong class={styles.itemStatValue}>{field.value}</strong>
+									</div>
+								);
+							}}
+						</For>
+					</div>
+				</section>
+			</Show>
+
+			<Show when={details.description}>
+				{(description) => {
+					return (
+						<section class={styles.summarySection}>
+							<h3 class={styles.summaryTitle}>Descrição</h3>
+							<p class={styles.itemDescription}>{description()}</p>
+						</section>
+					);
+				}}
+			</Show>
+
+			<Show when={details.tags}>
+				{(tags) => {
+					return (
+						<section class={styles.summarySection}>
+							<h3 class={styles.summaryTitle}>Tags</h3>
+							<p class={styles.itemDescription}>{tags()}</p>
+						</section>
+					);
+				}}
+			</Show>
+
+			<Show when={preparation.length > 0}>
+				<section class={styles.summarySection}>
+					<h3 class={styles.summaryTitle}>Preparação</h3>
+					<div class={styles.itemSourceList}>
+						<For each={preparation}>
+							{(field) => {
+								return (
+									<div class={styles.itemSource}>
+										<span class={styles.itemSourceLabel}>{field.label}</span>
+										<span class={styles.itemSourceValue}>{field.value}</span>
+									</div>
+								);
+							}}
+						</For>
+					</div>
+				</section>
+			</Show>
+
+			<Show when={videoEmbedUrl}>
+				{(embedUrl) => {
+					return (
+						<section class={styles.summarySection}>
+							<h3 class={styles.summaryTitle}>Vídeo</h3>
+							<div class={styles.huntVideoFrame}>
+								<iframe
+									src={embedUrl()}
+									title={`Vídeo da hunt ${details.name}`}
+									loading="lazy"
+									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+									allowfullscreen
+								/>
+							</div>
+						</section>
+					);
+				}}
+			</Show>
+		</div>
+	);
+};
+
 export default (props: EntityDetailPanelProps) => {
 	const [page, setPage] = createSignal<WikiPageDetails>();
 	const [creatureSummary, setCreatureSummary] = createSignal<CreatureSummary>();
 	const [itemSummary, setItemSummary] = createSignal<ItemSummary>();
 	const [imbuementSummary, setImbuementSummary] = createSignal<ImbuementSummary>();
+	const [huntDetails, setHuntDetails] = createSignal<TibiaWatchRespawnDetails>();
 	const [loading, setLoading] = createSignal(true);
 	const [error, setError] = createSignal("");
 	let activeController: AbortController | undefined;
 	const entityImageUrl = () => {
-		return page()?.imageUrl ?? props.entity.imageUrl;
+		return page()?.imageUrl ?? huntDetails()?.imageUrl ?? props.entity.imageUrl;
+	};
+	const entityTitle = () => {
+		return page()?.title ?? huntDetails()?.name ?? props.entity.title;
 	};
 
 	createEffect(() => {
-		const title = props.entity.title;
+		const entity = props.entity;
 		activeController?.abort();
 		const controller = new AbortController();
 		activeController = controller;
@@ -277,27 +512,37 @@ export default (props: EntityDetailPanelProps) => {
 		setCreatureSummary(undefined);
 		setItemSummary(undefined);
 		setImbuementSummary(undefined);
+		setHuntDetails(undefined);
 		setError("");
 		setLoading(true);
 
 		const loadDetails = async () => {
 			try {
-				const nextPage = await fetchWikiDetails(title, controller.signal, props.entity.kind, props.entity.lookupId);
-				if (controller.signal.aborted) {
-					return;
-				}
-
-				setPage({ ...nextPage, html: sanitizeWikiHtml(nextPage.html, props.entity.kind) });
-				if (props.entity.kind === "monster") {
-					const nextSummary = extractCreatureSummary(nextPage.wikitext);
-					const hasSummary = nextSummary.resistances.length > 0 || nextSummary.loot.length > 0;
-					if (hasSummary) {
-						setCreatureSummary(nextSummary);
+				if (entity.source === "tibiawatch") {
+					const nextHuntDetails = await fetchTibiaWatchHuntDetails(entity.lookupId ?? entity.id, controller.signal);
+					if (controller.signal.aborted) {
+						return;
 					}
-				} else if (props.entity.kind === "item") {
-					setItemSummary(extractItemSummary(nextPage.wikitext));
-				} else if (props.entity.kind === "imbuement") {
-					setImbuementSummary(extractImbuementSummary(nextPage.wikitext));
+
+					setHuntDetails(nextHuntDetails);
+				} else {
+					const nextPage = await fetchWikiDetails(entity.title, controller.signal, entity.kind, entity.lookupId);
+					if (controller.signal.aborted) {
+						return;
+					}
+
+					setPage({ ...nextPage, html: sanitizeWikiHtml(nextPage.html, entity.kind) });
+					if (entity.kind === "monster") {
+						const nextSummary = extractCreatureSummary(nextPage.wikitext);
+						const hasSummary = nextSummary.resistances.length > 0 || nextSummary.loot.length > 0;
+						if (hasSummary) {
+							setCreatureSummary(nextSummary);
+						}
+					} else if (entity.kind === "item") {
+						setItemSummary(extractItemSummary(nextPage.wikitext));
+					} else if (entity.kind === "imbuement") {
+						setImbuementSummary(extractImbuementSummary(nextPage.wikitext));
+					}
 				}
 			} catch (detailError) {
 				if (controller.signal.aborted || (detailError instanceof DOMException && detailError.name === "AbortError")) {
@@ -326,13 +571,13 @@ export default (props: EntityDetailPanelProps) => {
 					<div class={styles.entityHeading}>
 						<Show when={entityImageUrl()}>
 							{(imageUrl) => {
-								return <img class={styles.entityImage} src={imageUrl()} alt="" />;
+								return <img class={styles.entityImage} src={imageUrl()} alt="" onError={hideBrokenImage} />;
 							}}
 						</Show>
 						<div>
 							<div class={styles.panelKicker}>{ENTITY_KIND_LABEL[props.entity.kind]}</div>
 							<h2 id="entity-detail-title" class={styles.panelTitle}>
-								{page()?.title ?? props.entity.title}
+								{entityTitle()}
 							</h2>
 						</div>
 					</div>
@@ -372,11 +617,22 @@ export default (props: EntityDetailPanelProps) => {
 					<Show when={props.entity.kind === "imbuement" && !loading() && !error() && page()}>
 						<ImbuementSummaryView summary={imbuementSummary()} sourceUrl={page()?.sourceUrl} />
 					</Show>
+					<Show when={props.entity.kind === "hunt" && !loading() && !error()}>
+						<Show
+							when={huntDetails()}
+							fallback={<div class={styles.panelStatus}>Não foi possível identificar os dados desta hunt.</div>}
+						>
+							{(details) => {
+								return <HuntSummaryView details={details()} />;
+							}}
+						</Show>
+					</Show>
 					<Show
 						when={
 							props.entity.kind !== "monster" &&
 							props.entity.kind !== "item" &&
 							props.entity.kind !== "imbuement" &&
+							props.entity.kind !== "hunt" &&
 							!loading() &&
 							!error() &&
 							page()

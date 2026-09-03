@@ -75,6 +75,10 @@ export default (props: AppShellProps) => {
 		previousScrollTop = currentScrollTop;
 	};
 
+	const handleEntitySelect = (entity: EntitySearchResult) => {
+		return setSelectedEntity(entity);
+	};
+
 	return (
 		<div class={styles.page}>
 			<header class={styles.header} data-visible={headerVisible()}>
@@ -84,7 +88,7 @@ export default (props: AppShellProps) => {
 					</span>
 					Hunt Vault
 				</div>
-				<EntitySearch onSelect={setSelectedEntity} />
+				<EntitySearch onSelect={handleEntitySelect} />
 				<Navbar view={props.view} onViewChange={props.onViewChange} />
 			</header>
 			<Show when={selectedEntity()}>

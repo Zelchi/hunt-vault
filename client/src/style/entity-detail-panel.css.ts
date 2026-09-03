@@ -215,6 +215,24 @@ export const itemSourceValue = style({
 	overflowWrap: "anywhere",
 });
 
+export const huntVideoFrame = style({
+	position: "relative",
+	overflow: "hidden",
+	width: "100%",
+	aspectRatio: "16 / 9",
+	border: "1px solid #526d5b",
+	background: "#070b08",
+	boxShadow: "4px 4px 0 #050706",
+});
+
+globalStyle(`${huntVideoFrame} iframe`, {
+	position: "absolute",
+	inset: 0,
+	width: "100%",
+	height: "100%",
+	border: 0,
+});
+
 export const imbuementMaterialValue = style({
 	display: "flex",
 	alignItems: "center",

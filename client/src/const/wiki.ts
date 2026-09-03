@@ -1,4 +1,4 @@
-export const TIBIA_WIKI_API = "https://www.tibiawiki.com.br/api.php";
+export const TIBIA_WIKI_API = import.meta.env.DEV ? "/tibiawiki-api" : "https://www.tibiawiki.com.br/api.php";
 export const TIBIA_WIKI_ORIGIN = "https://www.tibiawiki.com.br";
 
 export const WIKI_CATALOG_CATEGORIES = {

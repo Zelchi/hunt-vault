@@ -5,13 +5,17 @@ import { SearchIcon } from "@/component/icons";
 import { ENTITY_KIND_LABEL, ENTITY_SEARCH_FILTERS, type EntitySearchFilter } from "@/const/entity";
 import {
 	cacheSearchResults,
+	cacheTibiaWatchHunts,
 	type EntityCatalog,
 	type EntitySearchResult,
 	getCachedSearchResults,
+	getCachedTibiaWatchHunts,
+	type HuntSearchResult,
 	loadEntityCatalog,
 	mergeSearchResults,
 	normalizeSearchText,
 	searchCatalog,
+	searchTibiaWatchHunts,
 	searchWikiCreatures,
 	searchWikiImbuements,
 	searchWikiItems,
@@ -62,7 +66,18 @@ const SearchResultButton = (props: {
 			<span class={styles.resultBody}>
 				<span class={styles.resultTopline}>
 					<strong class={styles.resultTitle}>{props.result.title}</strong>
-					<span class={styles.resultKind}>{props.result.isBoss ? "Boss" : ENTITY_KIND_LABEL[props.result.kind]}</span>
+					<span class={styles.resultBadges}>
+						<Show when={props.result.kind === "hunt" ? props.result.huntCode : undefined}>
+							{(huntCode) => {
+								return (
+									<span class={styles.resultCode} title="Código da hunt">
+										{huntCode()}
+									</span>
+								);
+							}}
+						</Show>
+						<span class={styles.resultKind}>{props.result.isBoss ? "Boss" : ENTITY_KIND_LABEL[props.result.kind]}</span>
+					</span>
 				</span>
 			</span>
 		</button>
@@ -77,28 +92,35 @@ export default (props: EntitySearchProps) => {
 	const [itemSearchLoading, setItemSearchLoading] = createSignal(false);
 	const [open, setOpen] = createSignal(false);
 	const [activeIndex, setActiveIndex] = createSignal(-1);
-	const [selectedFilter, setSelectedFilter] = createSignal<EntitySearchFilter>("all");
+	const [selectedFilters, setSelectedFilters] = createSignal<EntitySearchFilter[]>([]);
 	let searchRoot!: HTMLDivElement;
 	let searchInput!: HTMLInputElement;
 	let itemSearchController: AbortController | undefined;
 	let itemSearchTimer: number | undefined;
-	const filteredResults = () => {
-		const filter = selectedFilter();
-		if (filter === "all") {
-			return results();
-		}
+	const matchesFilter = (result: EntitySearchResult, filter: EntitySearchFilter) => {
 		if (filter === "boss") {
-			return results().filter((result) => {
-				return result.kind === "monster" && result.isBoss === true;
-			});
+			return result.kind === "monster" && result.isBoss === true;
 		}
 		if (filter === "monster") {
-			return results().filter((result) => {
-				return result.kind === "monster" && result.isBoss !== true;
-			});
+			return result.kind === "monster" && result.isBoss !== true;
 		}
+		return result.kind === filter;
+	};
+	const filteredResults = () => {
+		const filters = selectedFilters();
+		if (filters.length === 0) {
+			return results();
+		}
+
 		return results().filter((result) => {
-			return result.kind === filter;
+			return filters.some((filter) => {
+				return matchesFilter(result, filter);
+			});
+		});
+	};
+	const huntResults = () => {
+		return filteredResults().filter((result) => {
+			return result.kind === "hunt";
 		});
 	};
 	const bossResults = () => {
@@ -128,11 +150,25 @@ export default (props: EntitySearchProps) => {
 	};
 	const otherResults = () => {
 		return filteredResults().filter((result) => {
-			return result.kind !== "monster" && result.kind !== "imbuement" && result.kind !== "rune" && result.kind !== "spell";
+			return (
+				result.kind !== "monster" &&
+				result.kind !== "imbuement" &&
+				result.kind !== "rune" &&
+				result.kind !== "spell" &&
+				result.kind !== "hunt"
+			);
 		});
 	};
 	const visibleResults = () => {
-		return [...imbuementResults(), ...runeResults(), ...spellResults(), ...bossResults(), ...monsterResults(), ...otherResults()];
+		return [
+			...imbuementResults(),
+			...runeResults(),
+			...spellResults(),
+			...bossResults(),
+			...monsterResults(),
+			...huntResults(),
+			...otherResults(),
+		];
 	};
 	const resultIndex = (result: EntitySearchResult) => {
 		return visibleResults().findIndex((candidate) => {
@@ -140,7 +176,15 @@ export default (props: EntitySearchProps) => {
 		});
 	};
 	const selectFilter = (filter: EntitySearchFilter) => {
-		setSelectedFilter(filter);
+		setSelectedFilters((currentFilters) => {
+			if (currentFilters.includes(filter)) {
+				return currentFilters.filter((currentFilter) => {
+					return currentFilter !== filter;
+				});
+			}
+
+			return [...currentFilters, filter];
+		});
 		setActiveIndex(-1);
 	};
 
@@ -178,7 +222,7 @@ export default (props: EntitySearchProps) => {
 		setActiveIndex(-1);
 		cancelItemSearch();
 		const localResults = searchCatalog(catalog(), value);
-		setResults(mergeSearchResults(localResults, getCachedSearchResults(value)));
+		setResults(mergeSearchResults(localResults, [...getCachedSearchResults(value), ...getCachedTibiaWatchHunts(value)]));
 
 		if (normalizeSearchText(value).length < 2) {
 			return;
@@ -195,15 +239,29 @@ export default (props: EntitySearchProps) => {
 				searchWikiSpells(value, controller.signal),
 				searchWikiRunes(value, controller.signal),
 				searchWikiImbuements(value, controller.signal),
+				searchTibiaWatchHunts(value, controller.signal),
 			])
 				.then((searches) => {
 					if (!controller.signal.aborted) {
 						const remoteResults = searches.flatMap((search) => {
 							return search.status === "fulfilled" ? search.value : [];
 						});
-						cacheSearchResults(value, remoteResults);
+						const remoteHunts = remoteResults.filter((result): result is HuntSearchResult => {
+							return result.kind === "hunt";
+						});
+						cacheSearchResults(
+							value,
+							remoteResults.filter((result) => {
+								return result.source === "tibiawiki";
+							}),
+						);
+						cacheTibiaWatchHunts(value, remoteHunts);
 						setResults(
-							mergeSearchResults(searchCatalog(catalog(), value), [...getCachedSearchResults(value), ...remoteResults]),
+							mergeSearchResults(searchCatalog(catalog(), value), [
+								...getCachedSearchResults(value),
+								...getCachedTibiaWatchHunts(value),
+								...remoteResults,
+							]),
 						);
 					}
 				})
@@ -265,11 +323,13 @@ export default (props: EntitySearchProps) => {
 			setCatalogReady(true);
 
 			if (query().trim()) {
-				const currentRemoteResults = results().filter((result) => {
-					return result.source === "tibiawiki";
-				});
+				const currentResults = results();
 				setResults(
-					mergeSearchResults(searchCatalog(nextCatalog, query()), [...getCachedSearchResults(query()), ...currentRemoteResults]),
+					mergeSearchResults(searchCatalog(nextCatalog, query()), [
+						...getCachedSearchResults(query()),
+						...getCachedTibiaWatchHunts(query()),
+						...currentResults,
+					]),
 				);
 			}
 		});
@@ -335,8 +395,8 @@ export default (props: EntitySearchProps) => {
 								return (
 									<button
 										class={styles.filterButton}
-										data-active={selectedFilter() === filter.value}
-										aria-pressed={selectedFilter() === filter.value}
+										data-active={selectedFilters().includes(filter.value)}
+										aria-pressed={selectedFilters().includes(filter.value)}
 										type="button"
 										onClick={() => {
 											return selectFilter(filter.value);
@@ -433,6 +493,26 @@ export default (props: EntitySearchProps) => {
 						<Show when={monsterResults().length > 0}>
 							<div class={styles.resultGroupTitle}>Criaturas</div>
 							<For each={monsterResults()}>
+								{(result) => {
+									return (
+										<SearchResultButton
+											result={result}
+											isActive={() => {
+												return activeIndex() === resultIndex(result);
+											}}
+											onHover={() => {
+												return setActiveIndex(resultIndex(result));
+											}}
+											onSelect={selectResult}
+										/>
+									);
+								}}
+							</For>
+						</Show>
+
+						<Show when={huntResults().length > 0}>
+							<div class={styles.resultGroupTitle}>Hunts</div>
+							<For each={huntResults()}>
 								{(result) => {
 									return (
 										<SearchResultButton
