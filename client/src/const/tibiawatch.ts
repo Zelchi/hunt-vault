@@ -1,4 +1,4 @@
-export const TIBIAWATCH_API = import.meta.env.DEV ? "/tibiawatch-api" : "https://api.increasesoft.com";
+export const TIBIAWATCH_API = "/api/proxy";
 export const TIBIAWATCH_SEARCH_PATH = "/respawns/search";
 export const TIBIAWATCH_RESPAWNS_PATH = "/respawns";
 export const TIBIAWATCH_ORIGIN = "https://tibiawatch.com";

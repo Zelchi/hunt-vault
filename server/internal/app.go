@@ -14,6 +14,7 @@ type App struct {
 }
 
 func New(ctx context.Context, config Config) (*App, error) {
+	config = config.withDefaults()
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("configuração inválida: %w", err)
 	}
@@ -30,7 +31,7 @@ func New(ctx context.Context, config Config) (*App, error) {
 	events := newBroker()
 	return &App{
 		db:      db,
-		Handler: newApplicationHandler(newRouter(newStore(db), events, config.SyncAPIKey), config.StaticDir),
+		Handler: newApplicationHandler(newRouter(newStore(db), events, config.SyncAPIKey, config.ProxyAPIURL), config.StaticDir),
 	}, nil
 }
 

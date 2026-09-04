@@ -12,18 +12,15 @@ export default defineConfig({
 	},
 	server: {
 		proxy: {
+			"/api": {
+				target: "http://localhost:8080",
+				changeOrigin: true,
+			},
 			"/tibiawiki-api": {
 				target: "https://www.tibiawiki.com.br",
 				changeOrigin: true,
 				rewrite: (requestPath) => {
 					return requestPath.replace(/^\/tibiawiki-api/, "/api.php");
-				},
-			},
-			"/tibiawatch-api": {
-				target: "https://api.increasesoft.com",
-				changeOrigin: true,
-				rewrite: (requestPath) => {
-					return requestPath.replace(/^\/tibiawatch-api/, "/api");
 				},
 			},
 		},

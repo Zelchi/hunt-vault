@@ -5,15 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 )
+
+const defaultProxyAPIURL = "https://api.increasesoft.com/api"
 
 type Config struct {
 	Address      string
 	DatabasePath string
 	StaticDir    string
 	SyncAPIKey   []byte
+	ProxyAPIURL  string
 }
 
 func LoadConfig() Config {
@@ -25,10 +29,12 @@ func LoadConfig() Config {
 		DatabasePath: env("DATABASE_PATH", "data/hunt-vault.db"),
 		StaticDir:    env("STATIC_DIR", ""),
 		SyncAPIKey:   []byte(env("SYNC_API_KEY", "")),
+		ProxyAPIURL:  env("PROXY_API_URL", defaultProxyAPIURL),
 	}
 }
 
 func (c Config) Validate() error {
+	c = c.withDefaults()
 	if strings.TrimSpace(c.Address) == "" {
 		return errors.New("ADDR não pode ser vazio")
 	}
@@ -40,6 +46,24 @@ func (c Config) Validate() error {
 	}
 	if len(c.SyncAPIKey) < 32 {
 		return errors.New("SYNC_API_KEY deve ter pelo menos 32 bytes")
+	}
+	if err := validateProxyAPIURL(c.ProxyAPIURL); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c Config) withDefaults() Config {
+	if strings.TrimSpace(c.ProxyAPIURL) == "" {
+		c.ProxyAPIURL = defaultProxyAPIURL
+	}
+	return c
+}
+
+func validateProxyAPIURL(value string) error {
+	parsed, err := url.Parse(strings.TrimRight(strings.TrimSpace(value), "/"))
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return errors.New("PROXY_API_URL deve ser uma URL HTTP(S) válida sem query ou fragmento")
 	}
 	return nil
 }

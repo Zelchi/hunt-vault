@@ -23,9 +23,11 @@ const (
 )
 
 type server struct {
-	store  *store
-	broker *broker
-	apiKey []byte
+	store           *store
+	broker          *broker
+	apiKey          []byte
+	proxyAPIURL     string
+	proxyHTTPClient *http.Client
 }
 
 type partyHuntRequest struct {
@@ -36,8 +38,14 @@ type partyHuntRequest struct {
 	Deleted     bool            `json:"deleted"`
 }
 
-func newRouter(store *store, events *broker, apiKey []byte) *gin.Engine {
-	server := &server{store: store, broker: events, apiKey: append([]byte(nil), apiKey...)}
+func newRouter(store *store, events *broker, apiKey []byte, proxyAPIURL string) *gin.Engine {
+	server := &server{
+		store:           store,
+		broker:          events,
+		apiKey:          append([]byte(nil), apiKey...),
+		proxyAPIURL:     strings.TrimRight(strings.TrimSpace(proxyAPIURL), "/"),
+		proxyHTTPClient: &http.Client{Timeout: 10 * time.Second},
+	}
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery(), allowBrowserClients())
 	router.GET("/health", func(c *gin.Context) {
@@ -48,6 +56,7 @@ func newRouter(store *store, events *broker, apiKey []byte) *gin.Engine {
 	syncRoutes.POST("/push", server.authorize(), server.push)
 	syncRoutes.GET("/pull", server.pull)
 	syncRoutes.GET("/events", server.events)
+	router.GET("/proxy/*path", server.proxy)
 	return router
 }
 

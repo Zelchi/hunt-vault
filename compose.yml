@@ -14,6 +14,7 @@ services:
       STATIC_DIR: /app/client
       GIN_MODE: release
       SYNC_API_KEY: "${SYNC_API_KEY:?Defina SYNC_API_KEY no arquivo .env ou no ambiente}"
+      PROXY_API_URL: "${PROXY_API_URL:-https://api.increasesoft.com/api}"
     volumes:
       - hunt-vault-data:/app/data
     healthcheck:

@@ -14,6 +14,7 @@ func newApplicationHandler(apiHandler http.Handler, staticDir string) http.Handl
 	mux.Handle("/api/", http.StripPrefix("/api", apiHandler))
 	mux.Handle("/health", apiHandler)
 	mux.Handle("/v1/", apiHandler)
+	mux.Handle("/proxy/", apiHandler)
 
 	if strings.TrimSpace(staticDir) == "" {
 		mux.Handle("/", apiHandler)

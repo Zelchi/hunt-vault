@@ -52,6 +52,7 @@ O endereço público será <http://localhost:8080> (ou a porta definida em `PORT
 
 - `/` serve o client compilado;
 - `/api/health` e `/api/v1/sync/*` são atendidos pela mesma API;
+- `/api/proxy/*` é o proxy server-to-server para serviços externos;
 - os dados do SQLite ficam no volume Docker `hunt-vault-data`.
 
 O container expõe a porta `8080` por padrão. O [edge-proxy](https://github.com/Zelchi/edge-proxy) pode apontar a rota do domínio diretamente para esse container; ele deve encaminhar o caminho original, incluindo `/api`.
@@ -94,5 +95,9 @@ Quando acessada pelo container, a API usa o prefixo `/api`:
 | `GET` | `/api/v1/sync/pull?since=0` | Não |
 | `POST` | `/api/v1/sync/push` | `Authorization: Bearer <SYNC_API_KEY>` |
 | `GET` | `/api/v1/sync/events` | Não |
+| `GET` | `/api/proxy/respawns/search?q=Fury&page_size=20&server=rubinot&world=Malveria` | Não |
+| `GET` | `/api/proxy/respawns/:id` | Não |
 
 Internamente, o processo Go continua usando `/health` e `/v1/sync/*`; o próprio servidor remove o prefixo `/api` antes de encaminhar a requisição ao router da API. Os caminhos sem prefixo continuam disponíveis para o desenvolvimento local.
+
+O client consulta as hunts por meio de `/api/proxy/respawns/*`. O server encaminha a requisição para `PROXY_API_URL`, cujo padrão é `https://api.increasesoft.com/api`, evitando que o navegador precise acessar diretamente a API externa. A rota de proxy aceita requisições `GET` para outros caminhos do mesmo upstream.
