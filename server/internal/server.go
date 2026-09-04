@@ -28,6 +28,7 @@ type server struct {
 	apiKey          []byte
 	proxyAPIURL     string
 	proxyHTTPClient *http.Client
+	proxyCache      *cache[string, proxyResponse]
 }
 
 type partyHuntRequest struct {
@@ -44,7 +45,12 @@ func newRouter(store *store, events *broker, apiKey []byte, proxyAPIURL string) 
 		broker:          events,
 		apiKey:          append([]byte(nil), apiKey...),
 		proxyAPIURL:     strings.TrimRight(strings.TrimSpace(proxyAPIURL), "/"),
-		proxyHTTPClient: &http.Client{Timeout: 10 * time.Second},
+		proxyHTTPClient: &http.Client{Timeout: proxyRequestTimeout},
+		proxyCache: newCache[string, proxyResponse](cacheConfig[proxyResponse]{
+			ttl:      proxyCacheTTL,
+			maxBytes: proxyCacheMaxBytes,
+			size:     func(response proxyResponse) int { return len(response.body) },
+		}),
 	}
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery(), allowBrowserClients())

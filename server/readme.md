@@ -23,7 +23,7 @@ Para servir um build do client pelo próprio processo Go, defina `STATIC_DIR` ap
 
 O servidor ficará disponível em `http://localhost:8080`.
 
-A rota `GET /proxy/*path` faz proxy para o caminho correspondente no upstream configurado. Quando o server é usado pelo client ou pelo container, ela fica disponível com o prefixo `/api`; por exemplo, `/api/proxy/respawns/search`.
+A rota `GET /proxy/*path` faz proxy para o caminho correspondente no upstream configurado. Quando o server é usado pelo client ou pelo container, ela fica disponível com o prefixo `/api`; por exemplo, `/api/proxy/respawns/search`. Respostas `2xx` ficam em cache na memória por 24 horas, com limite geral de 256 MiB; `X-Proxy-Cache` informa `MISS` ou `HIT`. O cache é perdido ao reiniciar o processo.
 
 ## Testes
 

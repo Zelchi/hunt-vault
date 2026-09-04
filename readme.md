@@ -100,4 +100,4 @@ Quando acessada pelo container, a API usa o prefixo `/api`:
 
 Internamente, o processo Go continua usando `/health` e `/v1/sync/*`; o próprio servidor remove o prefixo `/api` antes de encaminhar a requisição ao router da API. Os caminhos sem prefixo continuam disponíveis para o desenvolvimento local.
 
-O client consulta as hunts por meio de `/api/proxy/respawns/*`. O server encaminha a requisição para `PROXY_API_URL`, cujo padrão é `https://api.increasesoft.com/api`, evitando que o navegador precise acessar diretamente a API externa. A rota de proxy aceita requisições `GET` para outros caminhos do mesmo upstream.
+O client consulta as hunts por meio de `/api/proxy/respawns/*`. O server encaminha a requisição para `PROXY_API_URL`, cujo padrão é `https://api.increasesoft.com/api`, evitando que o navegador precise acessar diretamente a API externa. A rota de proxy aceita requisições `GET` para outros caminhos do mesmo upstream e mantém respostas bem-sucedidas em um cache geral em memória por 24 horas. O cache é compartilhado pelos usuários daquele processo, limitado a 256 MiB, e é perdido quando o container reinicia.

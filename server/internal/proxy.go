@@ -14,7 +14,15 @@ const (
 	maxProxyPathLength  = 1024
 	maxProxyResponse    = 4 << 20
 	proxyRequestTimeout = 10 * time.Second
+	proxyCacheTTL       = 24 * time.Hour
+	proxyCacheMaxBytes  = 256 << 20
 )
+
+type proxyResponse struct {
+	status      int
+	contentType string
+	body        []byte
+}
 
 func (s *server) proxy(c *gin.Context) {
 	proxyPath := c.Param("path")
@@ -23,7 +31,20 @@ func (s *server) proxy(c *gin.Context) {
 		return
 	}
 
-	s.forwardProxy(c, proxyPath, c.Request.URL.Query())
+	accept := c.GetHeader("Accept")
+	if accept == "" {
+		accept = "application/json"
+	}
+	cacheKey := proxyCacheKey(proxyPath, c.Request.URL.Query(), accept)
+	if s.proxyCache != nil {
+		if entry, ok := s.proxyCache.get(cacheKey); ok {
+			c.Header("X-Proxy-Cache", "HIT")
+			writeProxyResponse(c, entry)
+			return
+		}
+	}
+
+	s.forwardProxy(c, proxyPath, c.Request.URL.Query(), cacheKey, accept)
 }
 
 func validProxyPath(value string) bool {
@@ -39,7 +60,11 @@ func validProxyPath(value string) bool {
 	return true
 }
 
-func (s *server) forwardProxy(c *gin.Context, proxyPath string, query url.Values) {
+func proxyCacheKey(path string, queryValues url.Values, accept string) string {
+	return path + "\x00" + queryValues.Encode() + "\x00" + accept
+}
+
+func (s *server) forwardProxy(c *gin.Context, proxyPath string, query url.Values, cacheKey, accept string) {
 	baseURL := s.proxyAPIURL
 	if baseURL == "" {
 		baseURL = defaultProxyAPIURL
@@ -57,15 +82,11 @@ func (s *server) forwardProxy(c *gin.Context, proxyPath string, query url.Values
 		c.JSON(http.StatusBadGateway, gin.H{"error": "não foi possível consultar o serviço externo"})
 		return
 	}
-	if accept := c.GetHeader("Accept"); accept != "" {
-		request.Header.Set("Accept", accept)
-	} else {
-		request.Header.Set("Accept", "application/json")
-	}
+	request.Header.Set("Accept", accept)
 
 	client := s.proxyHTTPClient
 	if client == nil {
-		client = &http.Client{Timeout: proxyRequestTimeout}
+		client = defaultProxyHTTPClient()
 	}
 	response, err := client.Do(request)
 	if err != nil {
@@ -91,5 +112,22 @@ func (s *server) forwardProxy(c *gin.Context, proxyPath string, query url.Values
 	if contentType == "" {
 		contentType = "application/json"
 	}
+
+	if response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusMultipleChoices && s.proxyCache != nil {
+		s.proxyCache.set(cacheKey, proxyResponse{
+			status:      response.StatusCode,
+			contentType: contentType,
+			body:        body,
+		})
+	}
+	c.Header("X-Proxy-Cache", "MISS")
 	c.Data(response.StatusCode, contentType, body)
+}
+
+func writeProxyResponse(c *gin.Context, entry proxyResponse) {
+	c.Data(entry.status, entry.contentType, entry.body)
+}
+
+func defaultProxyHTTPClient() *http.Client {
+	return &http.Client{Timeout: proxyRequestTimeout}
 }
